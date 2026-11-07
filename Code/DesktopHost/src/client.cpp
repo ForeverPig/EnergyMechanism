@@ -113,9 +113,16 @@ void DeviceClient::start()
   connect(transport, &Transport::closed, this,
           [this](const QString &r)
           {
+            bool uncertain = false;
             for (auto it = pending.cbegin(); it != pending.cend(); ++it)
-              if (!readOnly(byte(it->frame.data, 0)))
-                emit notice(QString("请求 %1 连接中断，结果未知").arg(it.key()));
+            {
+              const auto op = byte(it->frame.data, 0);
+              if (!readOnly(op) && op != V2_OBSERVE_RENEW && op != V2_OBSERVE_LEAVE)
+              {
+                uncertain = true;
+                emit operation(it.key(), op, V2_UNKNOWN, V2_LINK_DOWN);
+              }
+            }
             pending.clear();
             invalidate();
             lastOperation = 0;
@@ -127,7 +134,7 @@ void DeviceClient::start()
               status += "；2 秒后重连原设备";
               reconnectTimer.start();
             }
-            emit notice(r);
+            emit notice(uncertain ? r + "；未完成操作结果未知，重连后不会自动重新执行" : r);
             emit changed();
             emit disconnected();
           });

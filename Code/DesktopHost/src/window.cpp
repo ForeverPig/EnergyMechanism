@@ -208,6 +208,8 @@ Window::Window(QWidget *parent) : QMainWindow(parent), model(this), scanner(this
   connect(&scanner, &QBluetoothDeviceDiscoveryAgent::deviceDiscovered, this,
           [this](const QBluetoothDeviceInfo &d)
           {
+            if (transportKind->currentIndex() != 1 || model.active())
+              return;
             if (!d.name().startsWith("EnergyMechanism") &&
                 !d.serviceUuids().contains(
                     QBluetoothUuid(QString("af510000-7b3d-4b28-9f02-6c6d454d0001"))))
