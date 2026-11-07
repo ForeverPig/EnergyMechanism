@@ -4,8 +4,13 @@
 /.codex/
 /.agents/
 /.aws/
-/output/playwright/
-/output/physim-diagnosis-*/
+# Local outputs and reference material (keep on disk, do not publish)
+/output/
+/outputs/
+/PixPin_2026-10-01_16-50-41.png
+/PixPin_2026-10-01_16-50-53.png
+/PixPin_2026-10-01_16-53-50.png
+/RoboMaster*.pdf
 *.inspect.ndjson
 
 # Build products and installed dependencies
