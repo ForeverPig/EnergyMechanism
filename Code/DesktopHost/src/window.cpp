@@ -10,6 +10,8 @@
 #include <QHBoxLayout>
 #include <QMessageBox>
 #include <QScrollArea>
+#include <QScreen>
+#include <QResizeEvent>
 #include <QSerialPortInfo>
 #include <QSpinBox>
 #include <QStyle>
@@ -80,8 +82,9 @@ Window::Window(QWidget *parent) : QMainWindow(parent), model(this), scanner(this
 {
   setWindowTitle("Energy Mechanism · 能量机关");
   setWindowIcon(appIcon());
-  resize(1440, 960);
-  setMinimumSize(1100, 700);
+  const auto available = QGuiApplication::primaryScreen()->availableGeometry().size();
+  resize(qMin(1440, available.width() - 30), qMin(960, available.height() - 60));
+  setMinimumSize(860, 500);
   setStyleSheet(R"(
     QWidget{font-size:14px;color:#233a51;} QMainWindow,QScrollArea,QStackedWidget{background:#f3f6fa;}
     QFrame#sidebar{background:#14253b;border:none;} QLabel#brand{font-size:19px;font-weight:700;color:#fff;}
@@ -111,6 +114,7 @@ Window::Window(QWidget *parent) : QMainWindow(parent), model(this), scanner(this
   outer->setSpacing(0);
   setCentralWidget(root);
   auto *side = new QFrame;
+  sidebar = side;
   side->setObjectName("sidebar");
   side->setFixedWidth(190);
   auto *sl = new QVBoxLayout(side);
@@ -149,22 +153,24 @@ Window::Window(QWidget *parent) : QMainWindow(parent), model(this), scanner(this
   outer->addWidget(body, 1);
   auto *bar = new QFrame;
   bar->setObjectName("card");
-  auto *barLayout = new QHBoxLayout(bar);
+  auto *barLayout = new QGridLayout(bar);
+  connectionLayout = barLayout;
   barLayout->setContentsMargins(14, 12, 14, 12);
   barLayout->setSpacing(10);
   transportKind = choices({"USB 有线", "BLE 蓝牙"});
   devices = new QComboBox;
-  devices->setMinimumWidth(220);
+  devices->setMinimumWidth(140);
   devices->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
   scan = new QPushButton("刷新端口");
   connectButton = new QPushButton("连接设备");
   connectButton->setObjectName("primary");
   connectionState = label("未连接", "pill");
-  barLayout->addWidget(transportKind);
-  barLayout->addWidget(devices, 1);
-  barLayout->addWidget(scan);
-  barLayout->addWidget(connectButton);
-  barLayout->addWidget(connectionState);
+  barLayout->addWidget(transportKind, 0, 0);
+  barLayout->addWidget(devices, 0, 1);
+  barLayout->setColumnStretch(1, 1);
+  barLayout->addWidget(scan, 0, 2);
+  barLayout->addWidget(connectButton, 0, 3);
+  barLayout->addWidget(connectionState, 0, 4);
   bl->addWidget(bar);
   title = label("", "title");
   subtitle = label("", "subtitle");
@@ -273,7 +279,11 @@ QWidget *Window::homePage()
     tiles->addWidget(c);
   }
   v->addLayout(tiles);
+  health = label("等待中心通信状态", "hint");
+  health->setWordWrap(true);
+  v->addWidget(health);
   auto *row = new QHBoxLayout;
+  homeRow = row;
   row->setSpacing(18);
   QVBoxLayout *networkLayout;
   auto *network = card(&networkLayout);
@@ -368,9 +378,13 @@ QWidget *Window::debugPage()
   QVBoxLayout *leafLayout;
   auto *leafCard = card(&leafLayout);
   leafLayout->addWidget(label("叶片状态", "section"));
-  leafTable = table(
-      {"叶片", "连接", "校准 / 采样", "心跳年龄", "ADC 错误", "ADC 丢帧", "CAN 丢帧", "UID"}, 5);
-  leafTable->horizontalHeader()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
+  leafTable = table({"叶片", "连接", "校准 / 采样", "心跳年龄", "ADC 错误", "ADC 丢帧", "CAN 丢帧",
+                     "UID", "本次在线"},
+                    5);
+  leafTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+  leafTable->horizontalHeader()->setStretchLastSection(true);
+  leafTable->setToolTip(
+      "本次在线时长由本应用观察计算；断连或状态过期后重新计时，不代表叶片固件运行时间。");
   leafLayout->addWidget(leafTable);
   v->addWidget(leafCard);
   QVBoxLayout *motorLayout;
@@ -423,6 +437,7 @@ QWidget *Window::pressurePage()
           model.calibrate(slot);
       });
   auto *dataRow = new QHBoxLayout;
+  pressureRow = dataRow;
   dataRow->setSpacing(18);
   QVBoxLayout *ringLayout;
   auto *ringCard = card(&ringLayout);
@@ -547,6 +562,8 @@ void Window::updateView()
                            : model.connected ? (model.centerOnline ? "设备已连接" : "中心离线")
                                              : (active ? "连接中…" : "未连接"));
   connectionState->setToolTip(model.status);
+  connectionState->setStyleSheet(fresh ? "background:#e5f5f1;color:#147c6b;"
+                                       : "background:#fff0df;color:#986120;");
   connectButton->setText(active ? "断开连接" : "连接设备");
   transportKind->setEnabled(!active);
   devices->setEnabled(!active);
@@ -562,6 +579,25 @@ void Window::updateView()
                     : model.state.stopped                              ? "已停转"
                                                                        : "未停转");
   topology->setState(model.state.online, fresh);
+  if (fresh)
+  {
+    QStringList problems;
+    if (model.state.can != 31)
+      problems << "部分 CAN 端口未就绪";
+    if (model.state.online != 31)
+      problems << "部分叶片离线";
+    if (!model.state.motorKnown || model.state.motorKnown != model.state.motorValid)
+      problems << "电机反馈失联";
+    for (int i = 0; i < 5; ++i)
+      if (model.leaves[i].valid && (model.leaves[i].calibration & 128))
+        problems << QString("叶片 %1 采样故障").arg(i + 1);
+    health->setText(QString("%1\n中心 UART 累计错误 %2 · 丢帧 %3（计数非本轮新增）")
+                        .arg(problems.isEmpty() ? "设备通信状态正常" : problems.join(" · "))
+                        .arg(model.state.errors)
+                        .arg(model.state.drops));
+  }
+  else
+    health->setText("无有效中心状态；故障与遥测等待连接后同步。");
   identity->setText(model.connected ? QString("设备 %1\n%2 · %3")
                                           .arg(model.deviceId,
                                                model.endpoint.kind == Endpoint::Usb ? "USB"
@@ -598,6 +634,8 @@ void Window::updateView()
     cell(leafTable, i, 5, l.valid ? QString::number(l.adcDrops) : "—");
     cell(leafTable, i, 6, l.valid ? QString::number(l.canDrops) : "—");
     cell(leafTable, i, 7, l.uidValid ? l.uid : "—");
+    const auto seconds = model.onlineSeconds(i + 1);
+    cell(leafTable, i, 8, seconds < 0 ? "—" : QString::number(seconds) + " s");
   }
   for (int i = 0; i < 8; i++)
   {
@@ -671,5 +709,26 @@ void Window::closeEvent(QCloseEvent *e)
                        closeReady = true;
                        close();
                      });
+}
+void Window::resizeEvent(QResizeEvent *e)
+{
+  QMainWindow::resizeEvent(e);
+  if (!connectionLayout)
+    return;
+  const bool compact = width() < 1120;
+  sidebar->setFixedWidth(compact ? 160 : 190);
+  for (auto *widget :
+       std::array<QWidget *, 5>{transportKind, devices, scan, connectButton, connectionState})
+    connectionLayout->removeWidget(widget);
+  for (int i = 0; i < 5; ++i)
+    connectionLayout->setColumnStretch(i, 0);
+  connectionLayout->setColumnStretch(1, 1);
+  connectionLayout->addWidget(transportKind, 0, 0);
+  connectionLayout->addWidget(devices, 0, 1, 1, compact ? 2 : 1);
+  connectionLayout->addWidget(scan, compact ? 1 : 0, compact ? 0 : 2);
+  connectionLayout->addWidget(connectButton, compact ? 1 : 0, compact ? 1 : 3);
+  connectionLayout->addWidget(connectionState, compact ? 1 : 0, compact ? 2 : 4);
+  homeRow->setDirection(compact ? QBoxLayout::TopToBottom : QBoxLayout::LeftToRight);
+  pressureRow->setDirection(compact ? QBoxLayout::TopToBottom : QBoxLayout::LeftToRight);
 }
 } // namespace em

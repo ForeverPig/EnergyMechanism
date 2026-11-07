@@ -53,6 +53,13 @@ bool DeviceClient::canQueryLast() const
 {
   return connected && lastOperation && !pendingOp(V2_QUERY);
 }
+qint64 DeviceClient::onlineSeconds(int slot) const
+{
+  if (slot < 1 || slot > 5 || !fresh() || onlineSince[slot - 1] < 0 ||
+      !(state.online & (1 << (slot - 1))))
+    return -1;
+  return (clock.elapsed() - onlineSince[slot - 1]) / 1000;
+}
 void DeviceClient::open(const Endpoint &e)
 {
   if (active())
@@ -69,6 +76,7 @@ void DeviceClient::invalidate()
   state = {};
   leaves = {};
   motors = {};
+  onlineSince.fill(-1);
   token = 0;
   wantObservation = false;
   pressureSeen = false;
@@ -233,6 +241,8 @@ void DeviceClient::queryLast()
 void DeviceClient::tick()
 {
   const auto now = clock.elapsed();
+  if (!fresh())
+    onlineSince.fill(-1);
   const auto keys = pending.keys();
   for (auto seq : keys)
   {
@@ -335,6 +345,7 @@ void DeviceClient::receive(const Frame &f)
       state = {};
       leaves = {};
       motors = {};
+      onlineSince.fill(-1);
       token = 0;
       wantObservation = false;
       pressureSeen = false;
@@ -441,6 +452,13 @@ void DeviceClient::receive(const Frame &f)
     state = {true,        boot,        u32(b, 8),   u32(b, 12),  u32(b, 16),  u32(b, 28),
              u32(b, 32),  u32(b, 36),  u32(b, 40),  byte(b, 20), byte(b, 21), byte(b, 22),
              byte(b, 23), byte(b, 24), byte(b, 25), byte(b, 26), byte(b, 27)};
+    for (int i = 0; i < 5; ++i)
+    {
+      if (!(state.online & (1 << i)))
+        onlineSince[i] = -1;
+      else if (onlineSince[i] < 0)
+        onlineSince[i] = clock.elapsed();
+    }
     lastState = clock.elapsed();
     if (!state.slot || state.mode != V2_HIT_TEST)
     {

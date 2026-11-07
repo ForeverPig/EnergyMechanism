@@ -7,6 +7,8 @@
 #include <QPushButton>
 #include <QStackedWidget>
 #include <QTableWidget>
+#include <QGridLayout>
+#include <QBoxLayout>
 #include <QBluetoothDeviceDiscoveryAgent>
 #include <optional>
 namespace em
@@ -23,6 +25,10 @@ class Window final : public QMainWindow
               *calibrateButton = nullptr, *queryButton = nullptr;
   QLabel *connectionState = nullptr, *title = nullptr, *subtitle = nullptr, *gate = nullptr,
          *observation = nullptr, *message = nullptr, *identity = nullptr;
+  QLabel *health = nullptr;
+  QFrame *sidebar = nullptr;
+  QGridLayout *connectionLayout = nullptr;
+  QHBoxLayout *homeRow = nullptr, *pressureRow = nullptr;
   std::array<QLabel *, 4> stats{};
   std::array<QPushButton *, 4> nav{};
   QStackedWidget *pages = nullptr;
@@ -48,6 +54,7 @@ class Window final : public QMainWindow
 
 protected:
   void closeEvent(QCloseEvent *) override;
+  void resizeEvent(QResizeEvent *) override;
 
 public:
   explicit Window(QWidget *parent = nullptr);

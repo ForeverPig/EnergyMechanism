@@ -68,6 +68,7 @@ public:
   bool canDebug() const;
   bool canObserve(int slot) const;
   bool canQueryLast() const;
+  qint64 onlineSeconds(int slot) const;
   quint64 gatewayEpoch() const
   {
     return epoch;
@@ -112,6 +113,7 @@ private:
   quint16 sequence = 0, lastOperation = 0;
   quint64 boot = 0, epoch = 0, session = 0;
   quint32 caps = 0, token = 0, pressureSeq = 0, lastHit = 0;
+  std::array<qint64, 5> onlineSince{{-1, -1, -1, -1, -1}};
   qint64 lastState = 0, lastLeaves = 0, lastRenew = 0, lastWire = 0;
   bool intentional = false, everConnected = false, wantObservation = false, pressureSeen = false,
        hitSeen = false;

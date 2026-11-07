@@ -8,6 +8,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTimer>
+#include <QScrollArea>
+#include <QScrollBar>
 using namespace em;
 int main(int argc, char **argv)
 {
@@ -131,6 +133,7 @@ int main(int argc, char **argv)
     return app.exec();
   }
   Window window;
+  bool smokeOk = true;
   window.show();
   if (cli.isSet("demo") || cli.isSet("smoke-test"))
     window.startDemo();
@@ -139,35 +142,83 @@ int main(int argc, char **argv)
     const QString dir = cli.value("smoke-test");
     if (!QDir().mkpath(dir))
       return 3;
+    const auto capture = [&window, &smokeOk, dir](const QString &name)
+    { smokeOk = window.grab().save(dir + '/' + name + ".png") && smokeOk; };
+    const auto scroll = [&window](bool bottom)
+    {
+      for (auto *area : window.findChildren<QScrollArea *>())
+        if (area->isVisible())
+          area->verticalScrollBar()->setValue(bottom ? area->verticalScrollBar()->maximum() : 0);
+    };
     QTimer::singleShot(300, &window, [&window] { window.client()->enterDebug(); });
     QTimer::singleShot(600, &window,
-                       [&window, dir]
+                       [&window, capture]
                        {
                          window.resize(1366, 768);
                          window.showPage(0);
-                         window.grab().save(dir + "/01-home.png");
+                         capture("01-home");
                          window.showPage(1);
                        });
     QTimer::singleShot(900, &window,
-                       [&window, dir]
+                       [&window, capture]
                        {
-                         window.grab().save(dir + "/02-debug.png");
+                         capture("02-debug");
                          window.showPage(2);
                          window.client()->observe(1);
                        });
     QTimer::singleShot(4200, &window,
-                       [&window, dir]
+                       [capture, scroll]
                        {
-                         window.grab().save(dir + "/03-pressure.png");
-                         window.showPage(3);
+                         capture("03-pressure");
+                         scroll(true);
                        });
     QTimer::singleShot(4500, &window,
-                       [&window, &app, dir]
+                       [&window, capture, scroll]
                        {
-                         bool ok = window.grab().save(dir + "/04-records.png") &&
-                                   window.client()->fresh();
+                         capture("04-curve");
+                         scroll(false);
+                         window.client()->calibrate(1);
+                       });
+    QTimer::singleShot(4700, &window, [capture] { capture("05-calibration-accepted"); });
+    QTimer::singleShot(5400, &window,
+                       [&window, capture]
+                       {
+                         capture("06-calibration-completed");
+                         window.showPage(3);
+                       });
+    QTimer::singleShot(5600, &window,
+                       [&window, &smokeOk, capture]
+                       {
+                         smokeOk = smokeOk && window.client()->fresh();
+                         capture("07-records");
+                         window.showPage(0);
+                         window.resize(900, 600);
+                       });
+    QTimer::singleShot(5800, &window,
+                       [&window, capture]
+                       {
+                         capture("08-compact");
+                         window.client()->findChild<DemoTransport *>()->setFault(true);
+                         window.client()->refresh();
+                       });
+    QTimer::singleShot(6000, &window,
+                       [&window, capture]
+                       {
+                         capture("09-fault");
+                         window.showPage(1);
+                       });
+    QTimer::singleShot(6200, &window,
+                       [&window, capture]
+                       {
+                         capture("10-fault-details");
                          window.client()->close();
-                         QTimer::singleShot(200, &app, [&app, ok] { app.exit(ok ? 0 : 2); });
+                         window.showPage(0);
+                       });
+    QTimer::singleShot(6500, &window,
+                       [&app, &smokeOk, capture]
+                       {
+                         capture("11-offline");
+                         app.exit(smokeOk ? 0 : 2);
                        });
   }
   return app.exec();

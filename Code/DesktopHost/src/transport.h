@@ -88,11 +88,12 @@ class DemoTransport final : public Transport
   QTimer timer;
   quint32 ticks = 0, revision = 1, selection = 0;
   quint8 mode = 0, slot = 0;
-  bool watching = false, running = false;
+  bool watching = false, running = false, fault = false;
   Frame state(quint16 seq = 0) const;
 
 public:
   using Transport::Transport;
+  void setFault(bool value);
   void start() override;
   void stop() override;
   void send(const Frame &) override;

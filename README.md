@@ -10,6 +10,7 @@ RoboMaster能量机关硬件资料、STM32基础调试固件与开发文档。
 | `Code/Center Controller` | STM32G474中心控制板工程：五路CAN、叶片监测、C620只读反馈 |
 | `Code/Common` | 两板共享协议与通信代码 |
 | `Code/ESP32` | ESP-IDF 5.4工程：三端BLE网关、V2通信与独立UART测试 |
+| `Code/DesktopHost` | Qt 6.8.3 / C++20 Windows、Ubuntu 便携上位机，USB 与 BLE |
 | `Code/Test_EnergyMechanism` | 已有测试工程，作为检测逻辑参考 |
 | `Code/tools`、`Code/tests` | Windows编译/烧录脚本、串口工具和主机回归测试 |
 | `HardWare` | 叶片、中心控制板网表 |
@@ -28,6 +29,8 @@ RoboMaster能量机关硬件资料、STM32基础调试固件与开发文档。
 - [V2初版构建与主机测试记录](Code/VALIDATION_V2.md)
 - [V2烧录、UART/BLE与运行灯实测](Code/HARDWARE_V2_TEST.md)
 - [ESP32构建及Windows BLE命令行](Code/ESP32/README.md)
+- [双平台便携上位机使用与构建](Code/DesktopHost/README.md)
+- [便携包和 USB/BLE 验证范围](Code/DesktopHost/VALIDATION.md)
 - [完整产品通信规范草案](Code/PROTOCOL_BLE_DRAFT.md)
 - 固件与上位机开发大纲（本地资料：`outputs/能量机关_固件与上位机开发大纲.md`）
 - 编译检查记录（本地资料：`outputs/基础硬件调试工程_编译检查记录.md`）

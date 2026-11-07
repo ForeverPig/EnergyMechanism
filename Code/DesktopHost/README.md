@@ -12,6 +12,8 @@ Ubuntu 依赖正常桌面系统和系统蓝牙服务。USB 无权限时，将当
 
 首页同步状态；调试页确认停转后进入击打测试；压力页选择叶片并开始观察，退出页面停止本端租约。所有观察者共享当前叶片。校准“已受理”不等于完成，以最终就绪结果为准。结果未知时可在调试页查询最近操作；缓存缺失不能推定未执行。
 
+叶片“本次在线”是本应用观察到的连续在线时长，状态过期或重新连接后重新计时；心跳年龄、错误计数来自中心报告。它不代表叶片固件启动时间。窄窗口自动改为上下排列，内容较多的页面可向下滚动查看曲线和电机反馈。
+
 电机始终只读。电机没有反馈时显示失联，不能进入测试、压力观察或校准。电压、机关轴估算转速、训练设置、灯效及 Flash 持久化尚未开放。记录是最多 500 条的内存诊断列表，关闭清空，不是训练成绩。
 
 `--demo` 为明确标识的模拟预览，不打开硬件。`--smoke-test <目录>` 生成模拟截图。`--probe-usb COM8 --report result.json --seconds 15` 或 `--probe-ble <地址>` 只查询状态并生成验证报告；Ubuntu 串口可用 `/dev/ttyACM0`。
@@ -20,6 +22,10 @@ Ubuntu 依赖正常桌面系统和系统蓝牙服务。USB 无权限时，将当
 
 Windows：Qt 6.8.3 MSVC 2022、Visual Studio 2022 C++ 工作负载、CMake 3.31.6。执行 `scripts/build.ps1 -Action Test -QtRoot <Qt目录>`，`-Action Package` 输出便携包。
 
+用 VS Code 打开本目录，设置 `QT_ROOT` 后使用目录内的 tasks / launch；也可使用 `cmake --preset windows` 或 `cmake --preset linux`。打包时检查 MSVC app-local 运行库版本不能低于编译器；本机 VS 运行库过旧时传 `-CrtRoot <新版可分发DLL目录>`，或设置开发环境变量 `EM_CRT_ROOT`。最终用户无需安装运行库。
+
 Linux：在 Ubuntu 22.04 基线运行 `scripts/build-linux.sh <Qt目录>`。包内附带必要应用库，不携带系统 glibc 或显卡驱动。在 22.04/24.04 的干净桌面环境另做启动、蓝牙与 USB 实机验收。
 
 Qt 动态链接分发；许可证及字体来源见 `resources` 与成品包 `licenses`。无自动更新或联网下载运行时依赖。V2 业务协议与 USB 会话说明见上级目录 PROTOCOL_V2.md。
+
+成品包包含 `BUILDINFO.json` 和 `SHA256SUMS`；打包输出的 `windows-package.json` / `linux-package.json` 记录压缩大小、解压大小和压缩包 SHA256。自动构建见 `.github/workflows/desktop-host.yml`，实际验收范围见源码目录的 `VALIDATION.md`。

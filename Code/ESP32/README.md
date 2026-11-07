@@ -1,6 +1,6 @@
-# ESP32 BLE 网关与 UART 测试
+# ESP32 BLE / USB 网关与 UART 测试
 
-默认构建为 V2 BLE 网关，最大 3 个控制端、开放连接。协议与完整字段见 [V2 实现版](../PROTOCOL_V2.md)。2026-11-07 已烧录，Windows BLE 连接、重连及 206 次 UART V2 只读查询通过，详见 [实板记录](../HARDWARE_V2_TEST.md)。三端同时在线尚未实测。
+默认构建为 V2 网关，支持 3 个 BLE 控制端加 1 个 USB 控制端，BLE 为调试阶段开放连接。协议与完整字段见 [V2 实现版](../PROTOCOL_V2.md)。早期 BLE 验证见 [实板记录](../HARDWARE_V2_TEST.md)，桌面客户端与 USB 扩展验证见 [桌面验收记录](../DesktopHost/VALIDATION.md)。真实三 BLE 端同时在线尚未实测。
 
 目标：中心板 U14，ESP32-C3-WROOM-02-N4（4 MB），ESP-IDF 5.4 / NimBLE，不使用 PlatformIO。
 
@@ -10,7 +10,7 @@
 | UART1 RX | GPIO5 | PA9 / USART1 TX |
 | USB D− / D+ | GPIO18 / GPIO19 | 原生 USB Serial/JTAG |
 
-UART 固定 1 Mbps、8N1、无流控。BLE 与 USB 日志不占 STM32 协议串口。中心必须使用本次 V2 常规固件；CanSelfTest 专用固件没有 UART 服务。
+UART 固定 1 Mbps、8N1、无流控。USB Serial/JTAG 运行期用于完整 V2 二进制帧，Gateway 在应用启动后关闭文本日志；ROM/启动阶段杂讯由上位机重新同步丢弃。USB 使用随机会话 nonce、1 秒心跳、3 秒失效，独立于 BLE 会话。中心必须使用 V2 常规固件；CanSelfTest 专用固件没有 UART 服务。
 
 ## 构建与 VS Code
 

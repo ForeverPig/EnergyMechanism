@@ -9,6 +9,7 @@ permissions:
   contents: read
 jobs:
   windows:
+    timeout-minutes: 20
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +32,7 @@ jobs:
             outputs/DesktopHost/portable-smoke-windows/
             Code/DesktopHost/build/windows/Testing/Temporary/LastTest.log
   linux:
+    timeout-minutes: 20
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -55,6 +57,7 @@ jobs:
             Code/DesktopHost/build/linux/screenshots/
             Code/DesktopHost/build/linux/Testing/Temporary/LastTest.log
   linux-portable:
+    timeout-minutes: 20
     needs: linux
     runs-on: ubuntu-latest
     strategy:
@@ -77,8 +80,8 @@ jobs:
             test -x AppRun
             ldd EnergyMechanismHost | tee /app/ldd.txt
             ! grep -q "not found" /app/ldd.txt
-            QT_QPA_PLATFORM=offscreen ./AppRun --smoke-test /app/offscreen
-            QT_QPA_PLATFORM=xcb xvfb-run -a ./AppRun --smoke-test /app/x11
+            QT_QPA_PLATFORM=offscreen timeout 40 ./AppRun --smoke-test /app/offscreen
+            QT_QPA_PLATFORM=xcb timeout 40 xvfb-run -a ./AppRun --smoke-test /app/x11
           '
       - uses: actions/upload-artifact@v4
         with:

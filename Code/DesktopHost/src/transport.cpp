@@ -328,14 +328,22 @@ Frame DemoTransport::state(quint16 seq) const
   put32(b, 16, ticks * 50);
   b[20] = static_cast<char>(mode);
   b[21] = static_cast<char>(slot);
-  b[22] = 31;
-  b[23] = 31;
-  b[24] = 1;
-  b[25] = 1;
+  b[22] = fault ? 15 : 31;
+  b[23] = fault ? 15 : 31;
+  b[24] = fault ? 0 : 1;
+  b[25] = fault ? 0 : 1;
   b[27] = 1;
   put32(b, 28, selection);
   put32(b, 32, 127);
+  put32(b, 36, fault ? 3 : 0);
+  put32(b, 40, fault ? 2 : 0);
   return {V2_STATE, seq, b};
+}
+void DemoTransport::setFault(bool value)
+{
+  fault = value;
+  ++revision;
+  emit received(state());
 }
 void DemoTransport::start()
 {
@@ -432,8 +440,8 @@ void DemoTransport::send(const Frame &q)
                            put64(b, 0, 1234);
                            put32(b, 8, ticks + 1);
                            b[12] = static_cast<char>(i);
-                           b[13] = 1;
-                           b[14] = 1;
+                           b[13] = fault && i == 5 ? 0 : 1;
+                           b[14] = fault && i == 3 ? static_cast<char>(129) : 1;
                            b[15] = 1;
                            put32(b, 16, 100);
                            b.replace(28, 12, QByteArray(12, static_cast<char>(i)));

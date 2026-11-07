@@ -1,6 +1,6 @@
 param(
   [ValidateSet('Configure','Build','Test','Package')][string]$Action='Build',
-  [string]$QtRoot='', [string]$CMake='cmake'
+  [string]$QtRoot='', [string]$CMake='cmake', [string]$CrtRoot=$env:EM_CRT_ROOT
 )
 $ErrorActionPreference='Stop'
 $project=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -25,5 +25,5 @@ if($Action -in @('Test','Package')){
   if($LASTEXITCODE -ne 0){throw 'Tests failed'}
 }
 if($Action -eq 'Package'){
-  & (Join-Path $PSScriptRoot 'package-windows.ps1') -QtRoot $QtRoot -CMake $CMake -Build $build
+  & (Join-Path $PSScriptRoot 'package-windows.ps1') -QtRoot $QtRoot -CMake $CMake -Build $build -CrtRoot $CrtRoot
 }

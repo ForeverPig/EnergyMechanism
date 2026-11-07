@@ -68,6 +68,9 @@ for elf in seen:
 (stage / 'AppRun').write_text('#!/bin/sh\nset -eu\nAPPDIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexport QT_PLUGIN_PATH="$APPDIR/plugins"\nexec "$APPDIR/EnergyMechanismHost" "$@"\n')
 (stage / 'AppRun').chmod(0o755)
 (stage / 'EnergyMechanismHost').chmod(0o755)
+(stage / 'BUILDINFO.json').write_text(json.dumps(dict(app='0.1.0', qt='6.8.3',
+    compiler=subprocess.check_output(['c++', '--version'], text=True).splitlines()[0],
+    source_commit=os.environ.get('GITHUB_SHA', 'local')), indent=2) + '\n')
 subprocess.run([sys.executable, str(project / 'scripts/collect_licenses.py'), str(qt), str(stage / 'licenses')], check=True)
 shutil.copytree('/usr/share/common-licenses', stage / 'licenses/system/common-licenses', dirs_exist_ok=True)
 for elf in seen:

@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$QtRoot,[string]$CMake='cmake',[Parameter(Mandatory)][string]$Build,[string]$Python='python')
+param([Parameter(Mandatory)][string]$QtRoot,[string]$CMake='cmake',[Parameter(Mandatory)][string]$Build,[string]$Python='python',[string]$CrtRoot=$env:EM_CRT_ROOT)
 $ErrorActionPreference='Stop'
 $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 $out=Join-Path $repo 'outputs\DesktopHost'
@@ -20,9 +20,16 @@ foreach($plugin in 'qwindows.dll','qoffscreen.dll'){Copy-Item -LiteralPath "$QtR
 Set-Content -LiteralPath "$stage\qt.conf" -Value "[Paths]`nPlugins=plugins" -Encoding utf8
 $vswhere="${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $vs=& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-$crt=Get-ChildItem -LiteralPath "$vs\VC\Redist\MSVC" -Directory | Where-Object {$_.Name -match '^14\.'} | Sort-Object Name -Descending | ForEach-Object {Join-Path $_.FullName 'x64\Microsoft.VC143.CRT'} | Where-Object {Test-Path -LiteralPath $_} | Select-Object -First 1
+$crt=$CrtRoot
+if(-not $crt){$crt=Get-ChildItem -LiteralPath "$vs\VC\Redist\MSVC" -Directory | Where-Object {$_.Name -match '^14\.'} | Sort-Object Name -Descending | ForEach-Object {Join-Path $_.FullName 'x64\Microsoft.VC143.CRT'} | Where-Object {Test-Path -LiteralPath $_} | Select-Object -First 1}
 if(-not $crt){throw 'MSVC x64 redistributable DLLs missing'}
-Get-ChildItem -LiteralPath $crt -Filter '*.dll' | Copy-Item -Destination $stage
+$compilerFile=Get-ChildItem -LiteralPath "$Build\CMakeFiles" -Filter CMakeCXXCompiler.cmake -Recurse | Select-Object -First 1
+$compilerVersion=[regex]::Match((Get-Content -LiteralPath $compilerFile.FullName -Raw),'set\(CMAKE_CXX_COMPILER_VERSION "([^"]+)"\)').Groups[1].Value
+$runtimeVersion=(Get-Item -LiteralPath "$crt\vcruntime140.dll").VersionInfo.FileVersion
+$minimumRuntime=[version]('14.'+($compilerVersion -replace '^19\.',''))
+if([version]$runtimeVersion -lt $minimumRuntime){throw "MSVC runtime $runtimeVersion is older than compiler $compilerVersion. Supply current app-local redistributable DLLs with -CrtRoot (or EM_CRT_ROOT)."}
+Get-ChildItem -LiteralPath $crt -Filter '*.dll' | Where-Object {$_.Name -match '^(msvcp140|vcruntime140|concrt140|vccorlib140).*\.dll$'} | Copy-Item -Destination $stage
+@{app='0.1.0';qt='6.8.3';compiler=$compilerVersion;msvc_runtime=$runtimeVersion;source_commit=$env:GITHUB_SHA} | ConvertTo-Json | Set-Content -LiteralPath "$stage\BUILDINFO.json" -Encoding utf8
 & $Python (Join-Path $PSScriptRoot 'collect_licenses.py') $QtRoot "$stage\licenses"
 if($LASTEXITCODE -ne 0){throw 'License collection failed'}
 # Verify the package without Qt/Anaconda/compiler directories on PATH.
@@ -41,6 +48,6 @@ Set-Content -LiteralPath "$stage\SHA256SUMS" -Value $manifest -Encoding utf8
 $archive=Join-Path $out 'EnergyMechanismHost-0.1.0-windows-x64.zip'
 Compress-Archive -LiteralPath $stage -DestinationPath $archive -Force -CompressionLevel Optimal
 $bytes=(Get-ChildItem -LiteralPath $stage -File -Recurse | Measure-Object Length -Sum).Sum
-$report=[ordered]@{archive=$archive;archive_bytes=(Get-Item -LiteralPath $archive).Length;extracted_bytes=$bytes;sha256=(Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash;qt='6.8.3';app='0.1.0';portable_smoke='passed';clean_os_hardware_test='separate acceptance required'}
+$report=[ordered]@{archive=$archive;archive_bytes=(Get-Item -LiteralPath $archive).Length;extracted_bytes=$bytes;sha256=(Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash;qt='6.8.3';app='0.1.0';msvc_runtime=$runtimeVersion;portable_smoke='passed';clean_os_hardware_test='separate acceptance required'}
 $report | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $out 'windows-package.json') -Encoding utf8
 $report | ConvertTo-Json
