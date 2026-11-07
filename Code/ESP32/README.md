@@ -1,55 +1,100 @@
-# ESP32与中心STM32串口测试
+# ESP32 BLE 网关与 UART 测试
 
-已于2026-11-07完成烧录及1000/1000次UART往返实测，见测试记录（本地资料：`../../outputs/ESP32与STM32_UART实测_20261107.md`）。
+默认构建为 V2 BLE 网关，最大 3 个控制端、开放连接。协议与完整字段见 [V2 实现版](../PROTOCOL_V2.md)。2026-11-07 已烧录，Windows BLE 连接、重连及 206 次 UART V2 只读查询通过，详见 [实板记录](../HARDWARE_V2_TEST.md)。三端同时在线尚未实测。
 
-目标为当前中心板U14：ESP32-C3-WROOM-02-N4，4 MB Flash。使用现有VS Code ESP-IDF扩展与原生ESP-IDF 5.4环境；所有实际通信引脚按中心板网表显式配置。项目不依赖PlatformIO。
+目标：中心板 U14，ESP32-C3-WROOM-02-N4（4 MB），ESP-IDF 5.4 / NimBLE，不使用 PlatformIO。
 
-| 信号 | ESP32 | STM32/接口 | 配置 |
-| --- | --- | --- | --- |
-| ESP发送 | GPIO4 / UART1 TX | PA10 / USART1 RX | 1 Mbps、8N1、无流控 |
-| ESP接收 | GPIO5 / UART1 RX | PA9 / USART1 TX | 同上 |
-| USB D− | GPIO18 | R21 → DN → Type-C | 原生USB Serial/JTAG |
-| USB D+ | GPIO19 | R20 → DP → Type-C | 下载及测试控制台 |
+| 信号 | ESP32 | 中心 STM32/接口 |
+| --- | --- | --- |
+| UART1 TX | GPIO4 | PA10 / USART1 RX |
+| UART1 RX | GPIO5 | PA9 / USART1 TX |
+| USB D− / D+ | GPIO18 / GPIO19 | 原生 USB Serial/JTAG |
 
-GPIO4/5使用GPIO矩阵路由，模块RXD/TXD脚没有连接本链路。USB控制台与UART1分开，日志不会混入STM32协议。接线与运行方式依据[官方UART文档](https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32c3/api-reference/peripherals/uart.html)和[USB Serial/JTAG文档](https://docs.espressif.com/projects/esp-idf/en/v5.2/esp32c3/api-guides/usb-serial-jtag-console.html)。不启用Wi-Fi或BLE，不实现正式手机/电脑界面。
+UART 固定 1 Mbps、8N1、无流控。BLE 与 USB 日志不占 STM32 协议串口。中心必须使用本次 V2 常规固件；CanSelfTest 专用固件没有 UART 服务。
 
-## 配套STM32固件
+## 构建与 VS Code
 
-使用`Code/Center Controller/build/Debug/Center_Controller.elf`常规中心固件。之前的`CanSelfTest`专用固件没有启动UART业务，不能用于本测试。中心不需要新增协议命令，继续使用[基础协议V1](../PROTOCOL_DEBUG_V1.md)的`CMD_STATUS`。
-
-中心常规固件会维持现有CAN叶片通信，但电机驱动发送仍禁用。这个ESP32程序只发送状态查询，不下发校准、灯效、运动或Flash参数写入命令。
-
-## 测试过程
-
-上电进入READY，等待USB命令，不自动开始测试。通过USB发送以换行结束的ASCII命令：
-
-- `run`：1000次查询，发起间隔至少20 ms，单次超时300 ms；最多累计10次超时即结束为FAIL。
-- `status`：JSON状态/结果，含发送、匹配应答、CRC/帧错误、超时、UART错误、STM32错误计数和往返延迟。
-- `stop`：停止本轮，返回STOPPED。
-- `help`：显示命令。
-
-每次只保留一个待应答请求，序号非0且递增。只有CRC正确、中心状态结构正确、序号匹配的状态包才算成功；中心每500 ms主动发送的seq=0状态不能替代应答。发送交替采用整帧和跨头部分两段（间隔2 ms），验证接收器处理字节流而非依赖单次read边界。
-
-PASS要求1000/1000匹配、零超时、零帧错误、零串口硬件错误，且STM32的UART错误/发送丢包计数不增长、没有检测到STM32复位。计数起始值单独记录，避免把上次运行的历史错误隐藏。完成后不再发查询，可继续通过`status`读取结果或用`run`重测。该负载用于基本链路验证，不是满带宽压力测试。
-
-## 编译、下载、测试
-
-从仓库根目录执行，或打开`Code/EnergyMechanism.code-workspace`使用ESP32任务，也可以单独打开`Code/ESP32`使用ESP-IDF扩展。Setup只激活并检查现有环境，不下载工具或修改全局Python。
-
-本机SDK：`D:/Data/Code/esp/ESP-IDF/v5.4/esp-idf`；工具目录：`D:/Data/Code/esp/.espressif`。脚本已对应该安装；在另一台电脑需调整设置或传入`-IdfPath`、`-ToolsPath`，目标为`esp32c3`。ESP-IDF扩展2.3若要求选择Setup，请选择已有5.4环境；本工程的`ESP32: Build`等任务通过脚本独立选定环境，不依赖已弃用的`idf.espIdfPathWin`设置。
-
-仓库已迁移到纯英文路径`D:/Data/HardWare/EnergyMechanism`。脚本与VS Code ESP-IDF扩展统一使用工程内的`Code/ESP32/build`，`idf.buildPath`设置为相对路径`build`，不再依赖本机临时目录。继续启用Python UTF-8并关闭ccache。常规操作使用下面的脚本或已配置的VS Code任务；原生IDF终端进入`Code/ESP32`，设置`PYTHONUTF8=1`后执行`idf.py build`。以后移动工程时需重新生成构建目录，不能复用记录了旧绝对路径的CMake缓存。
+在仓库根目录执行：
 
 ```powershell
 & Code/tools/esp32.ps1 -Action Setup
 & Code/tools/esp32.ps1 -Action Build
-# 明确指定当前USB端口，以下示例COM8需以设备管理器为准。
-& Code/tools/esp32.ps1 -Action Flash -Port COM8
-& Code/tools/esp32.ps1 -Action Test -Port COM8
+& Code/tools/firmware.ps1 -Project Center -Action Build
 ```
 
-Build不访问设备，Flash明确写入ESP32，Test通过USB开始一轮硬件通信。UART1的1 Mbps与USB控制台中显示的115200串口设置不是同一链路。测试工具使用ESP-IDF自带的Python/pyserial环境。结果默认保存到`tmp/esp32-uart/run-时间`，可以用`-Output`指定新的目录。脚本构建后将ELF、BIN和MAP复制到工程`build/artifacts/`；下载使用工程`build/`中完整的bootloader、partition table和app文件，不能只把app BIN烧到地址0。
+默认生成 `Code/ESP32/build-gateway/energy_esp32_gateway.bin`、ELF/MAP，副本在该构建目录的 `artifacts/`。VS Code 默认 Build、FLASH 任务对应网关，ESP-IDF 扩展的 buildPath/sdkconfig 路径也指向 build-gateway。
 
-手动使用USB串口终端时，选择本板USB设备端口，发送带LF的命令。程序使用ESP32原生USB下载；无法自动进入下载模式时，可按住板上BOOT（GPIO9）后重新上电，再释放。如果首次写入后仍输出`waiting for download`，应松开BOOT并完整断电重上电，再运行Test；本次实测也经过此步骤。不得同时接USB-TTL驱动STM32 PA10。
+本机 SDK 为 `D:/Data/Code/esp/ESP-IDF/v5.4/esp-idf`，工具为 `D:/Data/Code/esp/.espressif`；换机器用 `-IdfPath`、`-ToolsPath` 指定。脚本开启 Python UTF-8、关闭 ccache。构建目录不可跨绝对路径搬移复用。
 
-测试源码通过`src/debug_protocol_adapter.c`复用`Code/Common/Src/debug_protocol.c`及对应头文件，串口二进制帧与STM32/Python工具一致。适配文件让共享源文件保持稳定的本地编译入口，不复制另一份CRC或帧解析实现。Flash参数保存仍未实现，测试结果只保留在RAM与电脑采集文件中。
+下载入口仍单独提供，**只有明确执行 Flash 才下载**；这里的 COMx 是占位，需替换实际 ESP USB 端口：
+
+```powershell
+& Code/tools/esp32.ps1 -Action Flash -Port COMx
+```
+
+NVS 仅用于 SDK 初始化，未增加用户阈值/成绩/参数 Flash 保存。NVS 初始化错误直接报告，不自动整区擦除。BLE 不启用绑定持久化。最大连接数 3，控制器活动数 4，保留一份广播活动供新控制端发现。
+
+## Windows 命令行
+
+此工具用于调试协议，不是正式电脑界面。依赖单独安装到所选 Python 环境：
+
+```powershell
+python -m pip install -r Code/tools/requirements-ble.txt
+python Code/tools/ble_debug.py --scan
+python Code/tools/ble_debug.py --address AA:BB:CC:DD:EE:FF
+```
+
+扫描只读；连接后工具先重建 CONTROL 订阅对应的业务会话，再订阅通知并发 HELLO，不自动进入测试、不校准、不驱动电机。工具要求 INFO capability_revision >= 2，以兼容 Windows 保留底层连接的情况。使用 `--quiet` 可隐藏主动遥测。同一电脑共享同一 BLE 连接的多个程序会相互替换业务会话，不能当作多个独立控制端。
+
+| 输入 | 功能 |
+| --- | --- |
+| state | 全量状态，含 C620 在线/停止确认标记 |
+| leaves 或 leaves 3 | 所有叶片或指定叶片信息 |
+| debug | 请求进入 HIT_TEST；需中心确认电机已停 |
+| watch 3 | 观察叶片 3，自动每秒续租，十路快照控制台最多打印 2 Hz |
+| leave | 取消本端观察，不影响其他观察端 |
+| cal 3 | 重新校准叶片 3；等待最终结果 |
+| idle / stop | 已停转时清除观察并进入 IDLE，不向电机发送制动电流 |
+| query 8 | 查询本连接请求 8 的已有结果 |
+| quit | 尽力退出观察并断开 |
+
+电机未接/无反馈显示失联，`debug/cal/watch` 不会绕过停转检查。仍可读取叶片和接收诊断击打。另一控制端切换观察叶片时，所有观察者跟随中心的全局选择。串口工具 `debug_monitor.py` 对中心只保留 V1 status；叶片直接串口仍支持原工具。
+
+请求超时显示 UNKNOWN；先 query 原序号，不要用新号反复执行校准。会话内请求号耗尽需重新连接。手机/微信正式 UI 本期没有新增，也未声称 Android/iPhone 实测兼容。
+
+## V2 只读实板测试
+
+先扫描确认目标地址，并开启 Windows 蓝牙。在仓库根目录执行以下命令；地址是占位，输出需使用新的目录：
+
+```powershell
+python Code/tools/ble_v2_test.py --address AA:BB:CC:DD:EE:FF --output tmp/ble-v2-check --count 200 --reconnects 2
+```
+
+该工具只允许 HELLO、GET_STATE、GET_LEAVES；不进入调试、不校准、不驱动电机，也不切换设备固件。默认包含 200 次循环查询、前后状态查询和 2 次重连，共 206 次经过 UART 的查询、3 次本地 HELLO。记录 `report.json` 与逐请求 `transactions.jsonl`，检查完整叶片批次、会话更换、设备身份连续性、重试/重组错误和中心 UART 错误计数增量。重复使用已有 report 目录会被拒绝，以保留旧结果。
+
+当前这块实测板广播名为 `EnergyMechanism-2A60`；连接/重连是顺序进行，不能代替三端同时在线测试。正常结束会取消通知并关闭 GATT 客户端，但 Windows 可能仍保留物理链路。
+
+如果烧录校验成功后只看到 `DOWNLOAD...waiting for download`，先确认 BOOT 已松开，再完整断电重上电。该板本次首次下载曾遇到此现象，完整重上电后恢复应用启动；不能仅凭 Flash 校验成功认定 BLE 应用已运行。
+
+## 保留旧 UART 专用测试
+
+`src/main.c` 保留原 1000 次 V1 STATUS 往返测试。显式选择后构建到独立目录：
+
+```powershell
+& Code/tools/esp32.ps1 -Action Build -Firmware UartTest
+& Code/tools/esp32.ps1 -Action Flash -Firmware UartTest -Port COMx
+& Code/tools/esp32.ps1 -Action Test -Firmware UartTest -Port COMx
+```
+
+固件为 `build-uart-test/energy_esp32_uart_test.bin`，不提供 BLE 网关。USB ASCII 命令仍为 `run / status / stop / help`，上电等待 run，不自动测试。VS Code 新增独立的 Build UART test / FLASH UART test 任务。普通 Test 动作只运行主机测试脚本，不切换设备上的固件。
+
+2026-11-07 先前 UART 实板验证为 1000/1000 匹配、CRC/序号检查通过。本地原始记录：`../../outputs/ESP32与STM32_UART实测_20261107.md`。该旧记录不代表本次 BLE 固件已验收。
+
+## 验证
+
+```powershell
+& Code/tests/run_tests.ps1
+python -m unittest discover -s Code/ESP32/tests -p 'test_*.py' -v
+```
+
+覆盖共享 V1/V2 编码、分片、路由、重试、校准终态、压力租约、重启/断线以及原 UART 结果分析。新增 CONTROL 退订重建会话及旧应答隔离回归。实板已完成 Windows 扫描/顺序重连、UART V2、中心非零启动标识与板载 LED 验证，见 [实板记录](../HARDWARE_V2_TEST.md)。三端同时在线、20 Hz 压力、真实校准和手机后台行为尚未验收。

@@ -15,9 +15,12 @@ typedef struct
   volatile uint8_t tx_read, tx_write, busy, restart;
   uint32_t rx_overruns, tx_drops, errors;
   FrameParser parser;
+  bool allow_v2;
 } UartLink;
 bool UartLink_Init(UartLink *l, UART_HandleTypeDef *uart);
 void UartLink_Poll(UartLink *l);
 bool UartLink_Receive(UartLink *l, DebugPacket *packet);
 bool UartLink_Send(UartLink *l, uint8_t type, uint16_t seq, const uint8_t *p, uint16_t n);
+bool UartLink_SendVersion(UartLink *l, uint8_t version, uint8_t type, uint16_t seq,
+                          const uint8_t *p, uint16_t n);
 #endif

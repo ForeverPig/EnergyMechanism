@@ -1,0 +1,4 @@
+{"version":6,"configurePresets":[
+  {"name":"windows","displayName":"Windows MSVC 2022","generator":"Visual Studio 17 2022","architecture":"x64","binaryDir":"${sourceDir}/build/windows","cacheVariables":{"CMAKE_PREFIX_PATH":"$env{QT_ROOT}","BUILD_TESTING":"ON"}},
+  {"name":"linux","displayName":"Ubuntu GCC / Ninja","generator":"Ninja","binaryDir":"${sourceDir}/build/linux","cacheVariables":{"CMAKE_PREFIX_PATH":"$env{QT_ROOT}","CMAKE_BUILD_TYPE":"Release","BUILD_TESTING":"ON"}}
+],"buildPresets":[{"name":"windows-release","configurePreset":"windows","configuration":"Release"},{"name":"linux-release","configurePreset":"linux"}],"testPresets":[{"name":"windows","configurePreset":"windows","configuration":"Release","output":{"outputOnFailure":true},"environment":{"QT_QPA_PLATFORM":"offscreen","PATH":"$env{QT_ROOT}/bin;$penv{PATH}"}},{"name":"linux","configurePreset":"linux","output":{"outputOnFailure":true},"environment":{"QT_QPA_PLATFORM":"offscreen"}}]}

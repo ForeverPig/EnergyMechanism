@@ -29,13 +29,14 @@ uint16_t DebugCrc(const uint8_t *p, size_t n)
   }
   return c;
 }
-size_t DebugEncode(uint8_t *out, uint8_t type, uint16_t seq, const uint8_t *data, uint16_t n)
+size_t WireEncode(uint8_t *out, uint8_t version, uint8_t type, uint16_t seq, const uint8_t *data,
+                  uint16_t n)
 {
   if (n > DBG_PAYLOAD_MAX)
     return 0;
   out[0] = 0xa5;
   out[1] = 0x5a;
-  out[2] = DBG_VERSION;
+  out[2] = version;
   out[3] = type;
   WriteU16(out + 4, n);
   WriteU16(out + 6, seq);
@@ -44,11 +45,15 @@ size_t DebugEncode(uint8_t *out, uint8_t type, uint16_t seq, const uint8_t *data
   WriteU16(out + 8 + n, DebugCrc(out + 2, 6u + n));
   return 10u + n;
 }
+size_t DebugEncode(uint8_t *out, uint8_t type, uint16_t seq, const uint8_t *data, uint16_t n)
+{
+  return WireEncode(out, DBG_VERSION, type, seq, data, n);
+}
 static void discard(FrameParser *p)
 {
   memmove(p->bytes, p->bytes + 1, --p->used);
 }
-bool DebugFeed(FrameParser *p, uint8_t byte, uint32_t now, DebugPacket *out)
+bool WireFeed(FrameParser *p, uint8_t byte, uint32_t now, DebugPacket *out, bool v2)
 {
   if (p->used && (uint32_t)(now - p->last_ms) > 100u)
   {
@@ -72,7 +77,7 @@ bool DebugFeed(FrameParser *p, uint8_t byte, uint32_t now, DebugPacket *out)
     if (p->used < 8)
       return false;
     uint16_t n = ReadU16(p->bytes + 4);
-    if (p->bytes[2] != DBG_VERSION || n > DBG_PAYLOAD_MAX)
+    if ((p->bytes[2] != DBG_VERSION && !(v2 && p->bytes[2] == 2)) || n > DBG_PAYLOAD_MAX)
     {
       discard(p);
       p->errors++;
@@ -86,6 +91,7 @@ bool DebugFeed(FrameParser *p, uint8_t byte, uint32_t now, DebugPacket *out)
       p->errors++;
       continue;
     }
+    out->version = p->bytes[2];
     out->type = p->bytes[3];
     out->len = n;
     out->seq = ReadU16(p->bytes + 6);
@@ -95,6 +101,10 @@ bool DebugFeed(FrameParser *p, uint8_t byte, uint32_t now, DebugPacket *out)
     return true;
   }
   return false;
+}
+bool DebugFeed(FrameParser *p, uint8_t byte, uint32_t now, DebugPacket *out)
+{
+  return WireFeed(p, byte, now, out, false);
 }
 bool CanIdAllowed(bool center, uint16_t id)
 {

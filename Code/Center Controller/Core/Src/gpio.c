@@ -58,6 +58,14 @@ void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(SPI2_CS_GPIO_Port, SPI2_CS_Pin, GPIO_PIN_SET);
 
+  /* Board LED1: PB4 -> R23 -> LED anode, cathode to GND. */
+  HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_RESET);
+  GPIO_InitStruct.Pin = STATUS_LED_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(STATUS_LED_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pins : B_G_Pin R_G_Pin SPI2_CS_Pin */
   GPIO_InitStruct.Pin = B_G_Pin|R_G_Pin|SPI2_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;

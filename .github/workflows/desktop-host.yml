@@ -1,0 +1,89 @@
+name: Desktop portable packages
+on:
+  workflow_dispatch:
+  push:
+    branches: ['codex/desktop-host-*']
+  pull_request:
+    paths: ['Code/DesktopHost/**', 'Code/Common/**', 'Code/ESP32/src/**', 'Code/tests/**', '.github/workflows/desktop-host.yml']
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build tools
+        run: python -m pip install aqtinstall==3.3.0 cmake==3.31.6 ninja==1.11.1.4
+      - name: Qt 6.8.3
+        run: python -m aqt install-qt windows desktop 6.8.3 win64_msvc2022_64 -O Qt --archives qtbase qttools qttranslations --modules qtconnectivity qtserialport
+      - name: Build, test and package
+        shell: pwsh
+        run: Code/DesktopHost/scripts/build.ps1 -Action Package -QtRoot "$pwd/Qt/6.8.3/msvc2022_64" -CMake cmake
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows-x64
+          path: |
+            outputs/DesktopHost/*.zip
+            outputs/DesktopHost/windows-package.json
+            outputs/DesktopHost/portable-smoke-windows/
+            Code/DesktopHost/build/windows/Testing/Temporary/LastTest.log
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-dev libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-image0 libxcb-render-util0 libdbus-1-3 libfontconfig1 patchelf
+          python -m pip install aqtinstall==3.3.0 cmake==3.31.6 ninja==1.11.1.4
+      - name: Qt 6.8.3
+        run: python -m aqt install-qt linux desktop 6.8.3 linux_gcc_64 -O Qt --archives qtbase qttools qttranslations qtwayland --modules qtconnectivity qtserialport
+      - name: Build, test and package
+        run: bash Code/DesktopHost/scripts/build-linux.sh "$PWD/Qt/6.8.3/gcc_64"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-linux-x64
+          path: |
+            outputs/DesktopHost/*.tar.gz
+            outputs/DesktopHost/linux-package.json
+            Code/DesktopHost/build/linux/screenshots/
+            Code/DesktopHost/build/linux/Testing/Temporary/LastTest.log
+  linux-portable:
+    needs: linux
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ubuntu: ['22.04', '24.04']
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-linux-x64
+          path: artifact
+      - name: Verify package without Qt SDK, Python or compiler
+        run: |
+          mkdir -p clean
+          tar -xzf artifact/outputs/DesktopHost/EnergyMechanismHost-0.1.0-linux-x64.tar.gz -C clean
+          docker run --rm -v "$PWD/clean:/app" ubuntu:${{ matrix.ubuntu }} bash -c '
+            set -eu
+            apt-get update >/dev/null
+            apt-get install -y --no-install-recommends libgl1 libegl1 libopengl0 xvfb xauth >/dev/null
+            cd /app/EnergyMechanismHost-linux-x64
+            test -x AppRun
+            ldd EnergyMechanismHost | tee /app/ldd.txt
+            ! grep -q "not found" /app/ldd.txt
+            QT_QPA_PLATFORM=offscreen ./AppRun --smoke-test /app/offscreen
+            QT_QPA_PLATFORM=xcb xvfb-run -a ./AppRun --smoke-test /app/x11
+          '
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portable-ubuntu-${{ matrix.ubuntu }}
+          path: |
+            clean/offscreen/
+            clean/x11/
+            clean/ldd.txt

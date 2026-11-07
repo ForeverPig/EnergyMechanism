@@ -1,4 +1,7 @@
 #include "board_app.h"
+#include "center_service.h"
+#include "boot_identity.h"
+#include "motor_control_plan.h"
 #include "reserved_features.h"
 #include "can_bus.h"
 #include "uart_link.h"
@@ -27,12 +30,9 @@ static UartLink serial;
 static Leaf leaf[5];
 static Motor motors[8];
 static volatile uint32_t scheduler_ticks;
-static uint8_t selected, command_seq, lease_port, pending_active, pending_port, pending_can_seq,
-    pending_tries;
-static uint32_t last_status, last_lease, last_motor, pending_sent;
-static uint16_t pending_uart_seq, cached_uart_seq;
-static uint8_t cached_result, cached_port, cache_valid;
-static uint32_t cached_ms;
+static uint8_t selected, command_seq, lease_port, motor_cursor;
+static uint32_t last_status, last_lease, last_motor;
+static CenterService service;
 static bool online(unsigned port, uint32_t now)
 {
   return leaf[port].seen && (uint32_t)(now - leaf[port].heartbeat) < 1000u;
@@ -50,20 +50,58 @@ static void ack(uint16_t seq, uint8_t op, uint8_t port, uint8_t result)
   uint8_t p[3] = {op, port, result};
   (void)UartLink_Send(&serial, DBG_ACK, seq, p, 3);
 }
-static void finish_calibration_command(uint8_t result, uint32_t now)
-{
-  ack(pending_uart_seq, CMD_CALIBRATE, pending_port, result);
-  cached_uart_seq = pending_uart_seq;
-  cached_port = pending_port;
-  cached_result = result;
-  cached_ms = now;
-  cache_valid = 1;
-  pending_active = 0;
-}
 static CanFrame command(uint8_t seq, uint8_t op, uint8_t value)
 {
   CanFrame f = {.id = CAN_COMMAND, .len = 8, .data = {DBG_VERSION, seq, op, value, 0, 0, 0, 0}};
   return f;
+}
+static bool service_send(void *ctx, const DebugPacket *p)
+{
+  (void)ctx;
+  return UartLink_SendVersion(&serial, 2, p->type, p->seq, p->data, p->len);
+}
+static bool service_calibrate(void *ctx, uint8_t slot, uint8_t seq)
+{
+  (void)ctx;
+  CanFrame f = command(seq, CAN_OP_CALIBRATE, 0);
+  return send_can(slot - 1u, &f);
+}
+static void update_view(uint32_t now)
+{
+  CenterView v = {0};
+  v.uart_errors = serial.errors + serial.rx_overruns + serial.parser.errors;
+  v.uart_drops = serial.tx_drops;
+  for (unsigned i = 0; i < 5; i++)
+  {
+    if (i < 3 ? (bus[i].ready && !bus[i].bus_off)
+              : (mcp[i - 3].ready && !(mcp[i - 3].eflg & 0x20u)))
+      v.can_ready |= (uint8_t)(1u << i);
+    CenterLeaf *l = &v.leaf[i];
+    l->online = (uint8_t)online(i, now);
+    l->status = leaf[i].status;
+    l->uid_valid = leaf[i].uid_mask == 3;
+    memcpy(l->uid, leaf[i].uid, 12);
+    l->adc_errors = leaf[i].adc_errors;
+    l->adc_drops = leaf[i].adc_drops;
+    l->age = leaf[i].seen ? now - leaf[i].heartbeat : UINT32_MAX;
+    l->heartbeat = leaf[i].heartbeat;
+    l->drops = i < 3 ? bus[i].rx_drops : mcp[i - 3].rx_overruns;
+  }
+  for (unsigned i = 0; i < 8; i++)
+    if (motors[i].seen)
+    {
+      v.motor_known |= (uint8_t)(1u << i);
+      if ((uint32_t)(now - motors[i].received) < 1000u)
+      {
+        v.motor_valid |= (uint8_t)(1u << i);
+        int16_t rpm, current;
+        uint16_t angle;
+        uint8_t temp;
+        if (MotorDecode(&motors[i].frame, &rpm, &current, &angle, &temp) && (rpm > 10 || rpm < -10))
+          v.motor_moving |= (uint8_t)(1u << i);
+      }
+    }
+  CenterService_View(&service, &v, now);
 }
 static void send_status(uint16_t seq, uint32_t now)
 {
@@ -135,19 +173,17 @@ static void on_frame(unsigned port, const CanFrame *f, uint32_t now)
     WriteU16(p + 1, f->id);
     p[3] = 8;
     memcpy(p + 4, f->data, 8);
-    (void)UartLink_Send(&serial, DBG_CAN_EVENT, 0, p, sizeof(p));
+    if (!service.gateway)
+      (void)UartLink_Send(&serial, DBG_CAN_EVENT, 0, p, sizeof(p));
+    CenterService_Hit(&service, (uint8_t)(port + 1), f->data, now);
   }
-  else if (f->id == CAN_ACK && f->data[0] == DBG_VERSION && pending_active &&
-           port + 1u == pending_port && f->data[1] == pending_can_seq &&
-           f->data[2] == CAN_OP_CALIBRATE)
+  else if (f->id == CAN_ACK && f->data[0] == DBG_VERSION && f->data[2] == CAN_OP_CALIBRATE)
   {
-    finish_calibration_command(f->data[3], now);
+    CenterService_CalAck(&service, (uint8_t)(port + 1), f->data[1], f->data[3], f->data[4], now);
   }
   else if (selected == port + 1u && online(port, now) && SnapshotAccept(&l->join, f, now))
   {
-    uint8_t p[106];
-    SnapshotPack(&l->join.snapshot, (uint8_t)(port + 1), p);
-    (void)UartLink_Send(&serial, DBG_SNAPSHOT, 0, p, sizeof(p));
+    CenterService_Pressure(&service, (uint8_t)(port + 1), &l->join.snapshot, now);
   }
 }
 static void on_command(const DebugPacket *p, uint32_t now)
@@ -169,55 +205,10 @@ static void on_command(const DebugPacket *p, uint32_t now)
       send_status(p->seq, now);
     return;
   }
-  if (op == CMD_STREAM)
-  {
-    if (port > 5 || value > 1 || (value && port == 0))
-    {
-      ack(p->seq, op, port, RES_INVALID);
-      return;
-    }
-    selected = value ? port : 0;
-    last_lease = now - 500u;
-    lease_port = 0;
-    for (unsigned i = 0; i < 5; i++)
-      leaf[i].join.active = 0;
-    ack(p->seq, op, port, RES_OK);
-    return; /* Selection accepted; stream starts once that leaf is reachable. */
-  }
-  if (op != CMD_CALIBRATE)
-  {
-    ack(p->seq, op, port, RES_UNSUPPORTED);
-    return;
-  }
-  if (port < 1 || port > 5 || value)
-  {
-    ack(p->seq, op, port, RES_INVALID);
-    return;
-  }
-  if (cache_valid && p->seq == cached_uart_seq && port == cached_port &&
-      (uint32_t)(now - cached_ms) < 2000u)
-  {
-    ack(p->seq, op, port, cached_result);
-    return;
-  }
-  if (pending_active)
-  {
-    if (p->seq != pending_uart_seq || port != pending_port)
-      ack(p->seq, op, port, RES_BUSY);
-    return;
-  }
-  if (!online(port - 1, now))
-  {
-    ack(p->seq, op, port, RES_OFFLINE);
-    return;
-  }
-  pending_active = 1;
-  pending_port = port;
-  pending_uart_seq = p->seq;
-  pending_can_seq = ++command_seq;
-  pending_tries = 0;
-  pending_sent = now - 300u;
+  /* V1 reads remain available for the UART bench test. Mutations require V2 gates. */
+  ack(p->seq, op, port, RES_UNSUPPORTED);
 }
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *h)
 {
   if (h->Instance == TIM7)
@@ -236,6 +227,9 @@ void BoardApp_Init(void)
   LedOutput_Disable();
   if (!UartLink_Init(&serial, &huart1))
     Error_Handler();
+  serial.allow_v2 = true;
+  CenterService_Init(&service, BootIdentity_Create(),
+                     (CenterBackend){service_send, service_calibrate, NULL});
   (void)CanBus_Init(&bus[0], &hfdcan1, true, true);
   (void)CanBus_Init(&bus[1], &hfdcan2, true, false);
   (void)CanBus_Init(&bus[2], &hfdcan3, true, false);
@@ -279,21 +273,24 @@ void BoardApp_Process(void)
       leaf[port].uid_mask = 0;
     }
   }
+  update_view(now);
   DebugPacket p;
   unsigned budget = 4;
   while (budget-- && UartLink_Receive(&serial, &p))
-    on_command(&p, now);
-  if (pending_active && (uint32_t)(now - pending_sent) >= 300u)
   {
-    if (pending_tries >= 3 || !online(pending_port - 1u, now))
-      finish_calibration_command(RES_TIMEOUT, now);
+    if (p.version == 2)
+      CenterService_Request(&service, &p, now);
     else
-    {
-      CanFrame f = command(pending_can_seq, CAN_OP_CALIBRATE, 0);
-      (void)send_can(pending_port - 1u, &f);
-      pending_tries++;
-      pending_sent = now;
-    }
+      on_command(&p, now);
+  }
+  CenterService_Poll(&service, now);
+  if (selected != service.selected)
+  {
+    selected = service.selected;
+    last_lease = now - 500u;
+    lease_port = 0;
+    for (unsigned i = 0; i < 5; i++)
+      leaf[i].join.active = 0;
   }
   if ((uint32_t)(now - last_lease) >= 500u)
   {
@@ -307,31 +304,35 @@ void BoardApp_Process(void)
   }
   if ((uint32_t)(now - last_status) >= 500u)
   {
-    send_status(0, now);
+    if (!service.gateway)
+      send_status(0, now);
     last_status = now;
   }
-  if ((uint32_t)(now - last_motor) >= 500u)
+  if ((uint32_t)(now - last_motor) >= 100u)
   {
     last_motor = now;
-    for (unsigned i = 0; i < 8; i++)
-      if (motors[i].seen)
+    unsigned i = motor_cursor;
+    motor_cursor = (uint8_t)((motor_cursor + 1u) % 8u);
+    if (motors[i].seen)
+    {
+      int16_t rpm, current;
+      uint16_t angle;
+      uint8_t temp;
+      Motor *m = &motors[i];
+      if (MotorDecode(&m->frame, &rpm, &current, &angle, &temp))
       {
-        int16_t rpm, current;
-        uint16_t angle;
-        uint8_t temp;
-        Motor *m = &motors[i];
-        if (MotorDecode(&m->frame, &rpm, &current, &angle, &temp))
-        {
-          uint8_t pld[14] = {(uint8_t)(i + 1), temp};
-          uint32_t age = now - m->received;
-          WriteU16(pld + 2, angle);
-          WriteU16(pld + 4, (uint16_t)rpm);
-          WriteU16(pld + 6, (uint16_t)current);
-          WriteU32(pld + 8, age);
-          pld[12] = (age < 1000u);
-          pld[13] = 0;
+        uint8_t pld[14] = {(uint8_t)(i + 1), temp};
+        uint32_t age = now - m->received;
+        WriteU16(pld + 2, angle);
+        WriteU16(pld + 4, (uint16_t)rpm);
+        WriteU16(pld + 6, (uint16_t)current);
+        WriteU32(pld + 8, age);
+        pld[12] = (age < 1000u);
+        pld[13] = 0;
+        if (!service.gateway)
           (void)UartLink_Send(&serial, DBG_MOTOR, 0, pld, sizeof(pld));
-        }
+        CenterService_Motor(&service, pld);
       }
+    }
   }
 }

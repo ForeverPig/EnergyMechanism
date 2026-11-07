@@ -1,0 +1,5 @@
+{"version":"2.0.0","tasks":[
+ {"label":"Desktop: build","type":"shell","command":"bash","args":["${workspaceFolder}/scripts/build-linux.sh","${env:QT_ROOT}"],"windows":{"command":"powershell.exe","args":["-NoProfile","-ExecutionPolicy","Bypass","-File","${workspaceFolder}/scripts/build.ps1","-Action","Build"]},"group":{"kind":"build","isDefault":true},"problemMatcher":["$gcc"]},
+ {"label":"Desktop: test","type":"shell","command":"ctest","args":["--preset","linux"],"windows":{"command":"powershell.exe","args":["-NoProfile","-ExecutionPolicy","Bypass","-File","${workspaceFolder}/scripts/build.ps1","-Action","Test"]},"group":"test","problemMatcher":[]},
+ {"label":"Desktop: package","type":"shell","command":"bash","args":["${workspaceFolder}/scripts/build-linux.sh","${env:QT_ROOT}"],"windows":{"command":"powershell.exe","args":["-NoProfile","-ExecutionPolicy","Bypass","-File","${workspaceFolder}/scripts/build.ps1","-Action","Package"]},"problemMatcher":[]}
+]}

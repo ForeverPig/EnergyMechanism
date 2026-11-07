@@ -1,0 +1,2 @@
+# API target: Bleak 3.x; actual BLE hardware verification is pending.
+bleak>=3.0,<4

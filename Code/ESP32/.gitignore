@@ -4,3 +4,6 @@ sdkconfig.*
 !sdkconfig.defaults
 managed_components/
 dependencies.lock
+
+/build-gateway/
+/build-uart-test/

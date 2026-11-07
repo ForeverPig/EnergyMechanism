@@ -2,6 +2,18 @@
   "cmake.configureOnOpen": false,
   "idf.flashType": "UART",
   "idf.enableCCache": false,
-  "idf.buildPath": "build",
-  "idf.customExtraVars": {"IDF_TARGET":"esp32c3","PYTHONUTF8":"1","PYTHONIOENCODING":"utf-8"}
+  "idf.buildPath": "build-gateway",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32c3",
+    "PYTHONUTF8": "1",
+    "PYTHONIOENCODING": "utf-8"
+  },
+  "idf.cmakeCompilerArgs": [
+    "-G",
+    "Ninja",
+    "-DPYTHON_DEPS_CHECKED=1",
+    "-DESP_PLATFORM=1",
+    "-DEM_UART_TEST=OFF"
+  ],
+  "idf.sdkconfigFilePath": "${workspaceFolder}/build-gateway/sdkconfig"
 }

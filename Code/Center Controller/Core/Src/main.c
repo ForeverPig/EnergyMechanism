@@ -28,6 +28,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "board_app.h"
+#include "status_led.h"
 
 /* USER CODE END Includes */
 
@@ -102,6 +103,7 @@ int main(void)
   MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
   BoardApp_Init();
+  StatusLed_Init(HAL_GetTick());
 
   /* USER CODE END 2 */
 
@@ -113,6 +115,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     BoardApp_Process();
+    StatusLed_Process(HAL_GetTick());
   }
   /* USER CODE END 3 */
 }

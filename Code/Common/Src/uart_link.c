@@ -68,12 +68,13 @@ bool UartLink_Receive(UartLink *l, DebugPacket *packet)
   while (l->consumed != end && budget--)
   {
     uint8_t b = l->rx[l->consumed++ % UART_RX_CAP];
-    if (DebugFeed(&l->parser, b, HAL_GetTick(), packet))
+    if (WireFeed(&l->parser, b, HAL_GetTick(), packet, l->allow_v2))
       return true;
   }
   return false;
 }
-bool UartLink_Send(UartLink *l, uint8_t type, uint16_t seq, const uint8_t *p, uint16_t n)
+bool UartLink_SendVersion(UartLink *l, uint8_t version, uint8_t type, uint16_t seq,
+                          const uint8_t *p, uint16_t n)
 {
   uint8_t next = (uint8_t)((l->tx_write + 1u) % UART_TX_DEPTH);
   if (next == l->tx_read || n > DBG_PAYLOAD_MAX)
@@ -81,10 +82,14 @@ bool UartLink_Send(UartLink *l, uint8_t type, uint16_t seq, const uint8_t *p, ui
     l->tx_drops++;
     return false;
   }
-  l->tx_len[l->tx_write] = (uint16_t)DebugEncode(l->tx[l->tx_write], type, seq, p, n);
+  l->tx_len[l->tx_write] = (uint16_t)WireEncode(l->tx[l->tx_write], version, type, seq, p, n);
   __DMB();
   l->tx_write = next;
   return true;
+}
+bool UartLink_Send(UartLink *l, uint8_t type, uint16_t seq, const uint8_t *p, uint16_t n)
+{
+  return UartLink_SendVersion(l, 1, type, seq, p, n);
 }
 void UartLink_Poll(UartLink *l)
 {

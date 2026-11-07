@@ -59,7 +59,7 @@ typedef struct
 } SnapshotJoin;
 typedef struct
 {
-  uint8_t type;
+  uint8_t type, version;
   uint16_t seq, len;
   uint8_t data[DBG_PAYLOAD_MAX];
 } DebugPacket;
@@ -76,6 +76,9 @@ void WriteU32(uint8_t *p, uint32_t v);
 uint16_t DebugCrc(const uint8_t *p, size_t n);
 size_t DebugEncode(uint8_t *out, uint8_t type, uint16_t seq, const uint8_t *data, uint16_t n);
 bool DebugFeed(FrameParser *p, uint8_t byte, uint32_t now, DebugPacket *out);
+size_t WireEncode(uint8_t *out, uint8_t version, uint8_t type, uint16_t seq, const uint8_t *data,
+                  uint16_t n);
+bool WireFeed(FrameParser *p, uint8_t byte, uint32_t now, DebugPacket *out, bool v2);
 bool SnapshotAccept(SnapshotJoin *join, const CanFrame *frame, uint32_t now);
 void SnapshotFrame(const PressureSnapshot *s, uint8_t part, CanFrame *out);
 void SnapshotPack(const PressureSnapshot *s, uint8_t port, uint8_t out[106]);
