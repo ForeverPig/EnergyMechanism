@@ -1,0 +1,28 @@
+{
+  "sourceHashMatches": true,
+  "targetBoundarySamplesChecked": 150,
+  "targetOutlineClosed": true,
+  "targetEntityTypes": {
+    "circle": 2,
+    "arc": 20,
+    "line": 28
+  },
+  "ringBoundariesMm": [
+    15,
+    30,
+    45,
+    60,
+    75,
+    90,
+    105,
+    120,
+    135,
+    150
+  ],
+  "ledBodies": 332,
+  "capacitorBodies": 332,
+  "mountingHoles": 16,
+  "geometryUnits": "mm",
+  "nativeSolidworksVersion": "2024",
+  "targetIsSketchOnly": true
+}

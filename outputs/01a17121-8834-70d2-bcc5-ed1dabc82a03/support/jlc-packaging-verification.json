@@ -1,0 +1,17 @@
+{
+  "output": "outputs\\01a17121-8834-70d2-bcc5-ed1dabc82a03\\V2_1_PickAndPlace_SMT_JLC_compatible.xlsx",
+  "rowsIncludingHeader": 684,
+  "changedCells": 1986,
+  "valueEqualityWithAuthoredWorkbook": true,
+  "onlyChangedXmlParts": [
+    "xl/worksheets/sheet1.xml",
+    "xl/sharedStrings.xml"
+  ],
+  "sharedStringIndicesForOriginalEntriesPreserved": true,
+  "preservedArchiveEntries": 14,
+  "sharedStringCount": 8894,
+  "sharedStringUniqueCount": 2922,
+  "originalRelationshipsAndContentTypesPreserved": true,
+  "factoryWebsiteImportTested": false,
+  "sha256": "103af8d1ec00cd038722d503753b44e2d502c892a58650ae94c406342057de91"
+}

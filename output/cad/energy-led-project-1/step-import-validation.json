@@ -1,0 +1,14 @@
+{
+  "stepReimported": true,
+  "loadErrors": 0,
+  "solidBodies": 665,
+  "volumeMm3": 125505.23579238706,
+  "boundingBoxMm": [
+    -150.0,
+    -150.0,
+    0.0,
+    150.0,
+    150.0,
+    3.2
+  ]
+}

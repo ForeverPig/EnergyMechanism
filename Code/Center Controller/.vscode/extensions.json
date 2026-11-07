@@ -1,0 +1,6 @@
+{
+  "recommendations": [
+    "stmicroelectronics.stm32cube-ide-core",
+    "ms-vscode.cmake-tools"
+  ]
+}

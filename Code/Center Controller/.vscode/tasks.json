@@ -1,0 +1,60 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Center",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/../tools/firmware.ps1",
+        "-Project",
+        "Center",
+        "-Action",
+        "Build",
+        "-Configuration",
+        "Debug"
+      ],
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Flash Center",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/../tools/firmware.ps1",
+        "-Project",
+        "Center",
+        "-Action",
+        "Flash",
+        "-Configuration",
+        "Debug",
+        "-Serial",
+        "${input:probeSerial}"
+      ],
+      "problemMatcher": [
+        "$gcc"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "probeSerial",
+      "type": "promptString",
+      "description": "ST-LINK serial number for this board (Flash writes hardware)"
+    }
+  ]
+}

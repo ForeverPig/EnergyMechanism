@@ -1,0 +1,6 @@
+build
+mx.scratch
+!.settings
+tools/_deps/
+__pycache__/
+*.pyc

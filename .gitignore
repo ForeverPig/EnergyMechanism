@@ -1,0 +1,55 @@
+# Local tool state and temporary investigation data
+/tmp/
+/.easyeda/
+/.codex/
+/.agents/
+/.aws/
+/output/playwright/
+/output/physim-diagnosis-*/
+*.inspect.ndjson
+
+# Build products and installed dependencies
+**/build/
+**/CMakeFiles/
+**/CMakeCache.txt
+**/compile_commands.json
+**/node_modules/
+**/_deps/
+**/.venv/
+**/venv/
+**/__pycache__/
+*.py[cod]
+*.o
+*.obj
+*.elf
+*.hex
+*.bin
+*.map
+*.exe
+*.dmp
+*.wer
+*.log
+
+# Per-user IDE state; shared VS Code settings/tasks remain tracked
+*.uvguix.*
+**/CMakeUserPresets.json
+**/.mxproject
+**/mx.scratch
+**/stlinkgdbserver_log.txt
+**/debug_log.txt
+**/.idea/
+*.swp
+*.swo
+~$*
+Thumbs.db
+.DS_Store
+
+# Local credentials/environment overrides
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+*.p12
+*.pfx

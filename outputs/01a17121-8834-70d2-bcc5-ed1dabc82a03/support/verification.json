@@ -1,0 +1,30 @@
+{
+  "boardName": "v2_1",
+  "pcbUuid": "778d4b73d65f6863b0ebbebfc3187c4d",
+  "sourceFile": "ProDoc_v2_1_2026-10-25.epro",
+  "xlsxSource": "PickAndPlace_PCB1_3_2026_10_25.xlsx",
+  "sha256": {
+    "ProDoc_v2_1_2026-10-25.epro": "1691252246426824aafe6d24a4256b1db0c3df3526fb1f58fa4048209eb3ea45",
+    "PickAndPlace_PCB1_3_2026_10_25.xlsx": "d7e9541b79d02919e044bedd9f597f622aeb2ae0afccd53d6e8b9de47ab9a0e0"
+  },
+  "componentCount": 683,
+  "changedLedCount": 330,
+  "changedCapCount": 332,
+  "unchangedCount": 21,
+  "packageCounts": {
+    "XL-5050RGBC-2812B-S": 308,
+    "FCC0402B104K160AT": 332,
+    "XL-2020RGBC-2812B": 24
+  },
+  "maxima": {
+    "ref_mm": 0.0005000000000165983,
+    "rotation_degrees": 0.0005000000000165983,
+    "mid_mm": 0.0004996000000000445,
+    "shape_vs_land_centre_mm": 0.0009906000000000374
+  },
+  "maxCorrectionMm": 0.5170002417794406,
+  "method": "Actual final PCB pose; placement centre of original SMD lands, excluding added via pads; no layout movement, ring reconstruction, or rotation change.",
+  "sourceClassification": "Added via pads made SMD=No; physical LEDs/capacitors are marked Yes for assembly.",
+  "sourcePadCountPreserved": true,
+  "sourceRowOrderPreserved": true
+}

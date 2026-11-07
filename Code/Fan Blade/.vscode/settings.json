@@ -1,0 +1,9 @@
+{
+  "cmake.cmakePath": "C:\\Users\\shuto\\AppData\\Local\\stm32cube\\bundles\\cmake\\4.3.1+st.1\\bin\\cmake.exe",
+  "cmake.useCMakePresets": "always",
+  "cmake.configureOnOpen": false,
+  "cmake.configureArgs": [
+    "-DCMAKE_MAKE_PROGRAM=C:\\Users\\shuto\\AppData\\Local\\stm32cube\\bundles\\ninja\\1.13.2+st.1\\bin\\ninja.exe"
+  ],
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/build/Debug/compile_commands.json"
+}

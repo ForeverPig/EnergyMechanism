@@ -1,0 +1,83 @@
+<section id="energy-led-layout">
+  <style>
+    #energy-led-layout .led-plots {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:18px}
+    #energy-led-layout .led-plots figure {margin:0;min-width:0}
+    #energy-led-layout .led-plots figcaption {margin-bottom:8px;font-weight:500}
+    #energy-led-layout .led-plot {display:block;width:100%;height:auto;overflow:visible}
+    #energy-led-layout .led-plot text {fill:var(--foreground)}
+    #energy-led-layout .led-status {margin:12px 0}
+    #energy-led-layout .led-ring-controls {margin:10px 0}
+    #energy-led-layout .standalone-only {display:none}
+    #energy-led-layout [hidden] {display:none!important}
+    @media(max-width:540px) {#energy-led-layout .led-plots {grid-template-columns:minmax(0,1fr)}}
+  </style>
+  <h3>300 mm 灯板：灯位与两种图案</h3>
+  <div class="viz-controls">
+    <label class="form-label">排列
+      <select class="form-select" data-field="layout">
+        <option value="hybrid341">300颗5050＋32颗同半径十字补光</option>
+        <option value="polar2">每环两圈灯</option>
+        <option value="polar1">每环一圈灯</option>
+        <option value="hex">三角点阵</option>
+      </select>
+    </label>
+    <label class="form-label">显示
+      <select class="form-select" data-field="mode">
+        <option value="target">可激活标靶</option>
+        <option value="rings">十环独立控制</option>
+      </select>
+    </label>
+    <label class="form-label" data-regular-field>圆周目标间距 / 点阵间距 <span data-value="pitch" class="tabular-nums">8 mm</span>
+      <input class="form-range" data-field="pitch" type="range" min="5" max="16" step="0.5" value="8">
+    </label>
+    <label class="form-label" data-regular-field>灯珠本体边长
+      <select class="form-select" data-field="packageSize">
+        <option value="2">2.0 mm</option>
+        <option value="3.5">3.5 mm</option>
+        <option value="5">5.0 mm</option>
+      </select>
+    </label>
+    <label class="form-label" data-hybrid-field>补光灯保守包体边长
+      <select class="form-select" data-field="smallSize">
+        <option value="2.2">2020：按2.2 mm方形检查</option>
+        <option value="2">2020：按2.0 mm方形检查</option>
+        <option value="3.5">3535：检查空间限制</option>
+      </select>
+    </label>
+  </div>
+  <div class="viz-row" data-hybrid-field>
+    <label class="form-check"><input class="form-check-input" type="checkbox" data-field="supplement" checked><span class="form-check-label">添加十字补光（仅标靶模式点亮）</span></label>
+    <span class="text-small">方块：LED（5050朝外／小灯朝内）；角点：0°左上角；细矩形：电容；空心圆：安装孔</span>
+  </div>
+  <div class="led-ring-controls" data-ring-panel hidden>
+    <div class="viz-row" data-ring-buttons aria-label="点亮环数"></div>
+    <div class="viz-row">
+      <button class="btn" type="button" data-action="alternating">图 1 的交替色带</button>
+      <button class="btn" type="button" data-action="all">十环全亮</button>
+      <button class="btn" type="button" data-action="none">全灭</button>
+    </div>
+  </div>
+  <div class="viz-row">
+    <label class="form-check"><input class="form-check-input" type="checkbox" data-field="sensor" checked><span class="form-check-label">电阻膜边界 / 外径 310 mm</span></label>
+    <label class="form-check"><input class="form-check-input" type="checkbox" data-field="outline"><span class="form-check-label">叠加理想轮廓</span></label>
+    <label class="form-check"><input class="form-check-input" type="checkbox" data-field="glow"><span class="form-check-label">示意光斑</span></label>
+    <label class="form-check" data-hybrid-field><input class="form-check-input" type="checkbox" data-field="capacitors" checked><span class="form-check-label">0402电容</span></label>
+    <label class="form-check" data-hybrid-field><input class="form-check-input" type="checkbox" data-field="chain" checked><span class="form-check-label">编号连线 / 逆时针</span></label>
+  </div>
+  <div class="text-small led-status" data-hybrid-field>内→外、逆时针；R82.5／97.5圈从3点钟下侧小灯进入，其余圈从3点钟方向开始。</div>
+  <div class="led-status tabular-nums" data-status aria-live="polite"></div>
+  <div class="text-small led-status tabular-nums" data-pcb-status aria-live="polite"></div>
+  <div data-warning class="text-destructive" role="alert" hidden></div>
+  <div data-pcb-warning class="text-small text-destructive" role="alert" hidden></div>
+  <div class="led-plots">
+    <figure><figcaption>灯珠位置与点亮结果</figcaption><svg class="led-plot" data-plot="leds" role="img" aria-label="灯珠实际坐标和当前点亮结果"></svg></figure>
+    <figure><figcaption>理想发光区域</figcaption><svg class="led-plot" data-plot="ideal" role="img" aria-label="理想十环或标靶轮廓"></svg></figure>
+  </div>
+  <div class="text-small led-status">环号由外向内 1 → 10；光斑仅示意，不包含电阻膜遮挡、散射与串光。</div>
+  <div class="viz-row standalone-only">
+    <button class="btn" type="button" data-export="pcb">导出LED＋电容＋安装孔坐标</button>
+    <button class="btn" type="button" data-export="csv">导出坐标 CSV</button>
+    <button class="btn" type="button" data-export="json">导出 JSON</button>
+    <button class="btn" type="button" data-export="h">导出 C 映射表</button>
+  </div>
+</section>

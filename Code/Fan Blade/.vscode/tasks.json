@@ -1,0 +1,60 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Leaf",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/../tools/firmware.ps1",
+        "-Project",
+        "Leaf",
+        "-Action",
+        "Build",
+        "-Configuration",
+        "Debug"
+      ],
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Flash Leaf",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/../tools/firmware.ps1",
+        "-Project",
+        "Leaf",
+        "-Action",
+        "Flash",
+        "-Configuration",
+        "Debug",
+        "-Serial",
+        "${input:probeSerial}"
+      ],
+      "problemMatcher": [
+        "$gcc"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "probeSerial",
+      "type": "promptString",
+      "description": "ST-LINK serial number for this board (Flash writes hardware)"
+    }
+  ]
+}

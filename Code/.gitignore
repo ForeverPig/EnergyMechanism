@@ -1,0 +1,4 @@
+**/build/
+**/__pycache__/
+**/stlinkgdbserver_log.txt
+**/debug_log.txt
