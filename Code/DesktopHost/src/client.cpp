@@ -42,7 +42,7 @@ void DeviceClient::start() {
     pending.clear();invalidate();lastOperation=0;
     transport->deleteLater();transport=nullptr;status=r;
     if(!intentional && everConnected) {status+="；2 秒后重连原设备";reconnectTimer.start();}
-    emit changed();emit disconnected();
+    emit notice(r);emit changed();emit disconnected();
   });
   status="正在连接…";emit changed();transport->start();
 }

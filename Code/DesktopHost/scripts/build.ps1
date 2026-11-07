@@ -6,6 +6,7 @@ $ErrorActionPreference='Stop'
 $project=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $repo=[IO.Path]::GetFullPath((Join-Path $project '..\..'))
 $build=Join-Path $project 'build\windows'
+if(-not $QtRoot){$QtRoot=$env:QT_ROOT}
 if(-not $QtRoot){$QtRoot=Join-Path $repo 'tmp\desktop-build\Qt\6.8.3\msvc2022_64'}
 if(-not (Test-Path -LiteralPath "$QtRoot\bin\Qt6Core.dll")){throw 'Pass -QtRoot for Qt 6.8.3 msvc2022_64.'}
 if($CMake -eq 'cmake' -and -not (Get-Command cmake -ErrorAction SilentlyContinue)){

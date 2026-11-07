@@ -20,7 +20,13 @@ UsbTransport::UsbTransport(const QString &name,QObject *p):Transport(p),portName
     }
   });
   connect(&port,&QSerialPort::errorOccurred,this,[this](QSerialPort::SerialPortError e){
-    if(e!=QSerialPort::NoError && e!=QSerialPort::NotOpenError) fail("USB："+port.errorString());
+    if(e!=QSerialPort::NoError && e!=QSerialPort::NotOpenError) {
+      QString reason="USB："+port.errorString();
+#ifdef Q_OS_LINUX
+      if(e==QSerialPort::PermissionError) reason+="。请检查串口占用或将当前用户加入 dialout 组后重新登录，详见使用说明。";
+#endif
+      fail(reason);
+    }
   });
 }
 void UsbTransport::start() {

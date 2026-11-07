@@ -58,6 +58,9 @@ private slots:
     pressure[12]=2;put32(pressure,8,2);fake->inject({V2_PRESSURE,0,pressure});QCOMPARE(pressureSpy.size(),2);
     c.calibrate(2);q=fake->sent.last();result[0]=V2_CALIBRATE;result[1]=0;result[33]=2;put32(result,12,4);put32(result,28,2);fake->inject({V2_RESULT,q.seq,result});QVERIFY(c.busy());
     result[1]=1;result[3]=1;fake->inject({V2_RESULT,q.seq,result});QVERIFY(!c.busy());QVERIFY(operations.size()>=4);
+    c.calibrate(2);q=fake->sent.last();QVERIFY(c.busy());
+    put64(session,28,200);fake->inject({V2_SESSION,0,session});QVERIFY(!c.busy());QVERIFY(!c.observing());QVERIFY(!c.fresh());
+    auto operationCount=operations.size();fake->inject({V2_RESULT,q.seq,result});QCOMPARE(operations.size(),operationCount);
     c.close();QVERIFY(!c.connected);QVERIFY(!c.observing());
   }
   void retriesPreserveIdentity(){

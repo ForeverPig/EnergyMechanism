@@ -34,7 +34,7 @@ try {
   if($process.ExitCode -ne 0){throw "Portable startup failed: $($process.ExitCode)"}
 } finally {$env:PATH=$previousPath;$env:QT_QPA_PLATFORM=$previousPlatform;$env:QT_PLUGIN_PATH=$previousPlugins}
 $manifest=Get-ChildItem -LiteralPath $stage -File -Recurse | Sort-Object FullName | ForEach-Object {
-  $relative=[IO.Path]::GetRelativePath($stage,$_.FullName).Replace('\','/')
+  $relative=$_.FullName.Substring($stage.Length+1).Replace('\','/')
   (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLower()+'  '+$relative
 }
 Set-Content -LiteralPath "$stage\SHA256SUMS" -Value $manifest -Encoding utf8
