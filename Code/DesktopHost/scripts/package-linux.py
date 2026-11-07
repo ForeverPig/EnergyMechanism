@@ -65,7 +65,7 @@ for elf in seen:
     relative = os.path.relpath(stage / 'lib', elf.parent)
     subprocess.run(['patchelf', '--set-rpath', '$ORIGIN/' + relative, str(elf)], check=True)
 (stage / 'qt.conf').write_text('[Paths]\nPlugins=plugins\n')
-(stage / 'AppRun').write_text('#!/bin/sh\nset -eu\nAPPDIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexport QT_PLUGIN_PATH="$APPDIR/plugins"\nexec "$APPDIR/EnergyMechanismHost" "$@"\n')
+(stage / 'AppRun').write_text('#!/bin/sh\nset -eu\nAPPDIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexport QT_PLUGIN_PATH="$APPDIR/plugins"\nexport FONTCONFIG_FILE="$APPDIR/resources/fonts.conf"\nexport QT_QPA_FONTDIR="$APPDIR/resources"\nexec "$APPDIR/EnergyMechanismHost" "$@"\n')
 (stage / 'AppRun').chmod(0o755)
 (stage / 'EnergyMechanismHost').chmod(0o755)
 (stage / 'BUILDINFO.json').write_text(json.dumps(dict(app='0.1.0', qt='6.8.3',

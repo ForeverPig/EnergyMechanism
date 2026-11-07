@@ -70,14 +70,19 @@ jobs:
           path: artifact
       - name: Verify package without Qt SDK, Python or compiler
         run: |
-          mkdir -p clean
-          tar -xzf artifact/outputs/DesktopHost/EnergyMechanismHost-0.1.0-linux-x64.tar.gz -C clean
-          docker run --rm -v "$PWD/clean:/app" ubuntu:${{ matrix.ubuntu }} bash -c '
+          mkdir -p 'clean/便携 测试'
+          tar -xzf artifact/outputs/DesktopHost/EnergyMechanismHost-0.1.0-linux-x64.tar.gz -C 'clean/便携 测试'
+          docker build -t em-smoke:${{ matrix.ubuntu }} - <<'DOCKERFILE'
+          FROM ubuntu:${{ matrix.ubuntu }}
+          RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libegl1 libopengl0 xvfb xauth
+          DOCKERFILE
+          chmod -R a+rwX clean
+          docker run --rm --network none --user 1000:1000 -e HOME=/tmp -e LANG=C.UTF-8 -v "$PWD/clean:/app" em-smoke:${{ matrix.ubuntu }} bash -c '
             set -eu
-            apt-get update >/dev/null
-            apt-get install -y --no-install-recommends libgl1 libegl1 libopengl0 xvfb xauth >/dev/null
-            cd /app/EnergyMechanismHost-linux-x64
+            cd "/app/便携 测试/EnergyMechanismHost-linux-x64"
+            test "$(id -u)" != 0
             test -x AppRun
+            sha256sum --check --quiet SHA256SUMS
             ldd EnergyMechanismHost | tee /app/ldd.txt
             ! grep -q "not found" /app/ldd.txt
             QT_QPA_PLATFORM=offscreen timeout 40 ./AppRun --smoke-test /app/offscreen

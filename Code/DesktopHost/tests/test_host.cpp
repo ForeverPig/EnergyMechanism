@@ -82,9 +82,11 @@ private slots:
   void gatesSessionsAndSharedSelection()
   {
     FakeTransport *fake = nullptr;
+    QStringList endpoints;
     DeviceClient c(nullptr,
-                   [&](const Endpoint &, QObject *p)
+                   [&](const Endpoint &endpoint, QObject *p)
                    {
+                     endpoints.append(endpoint.id);
                      fake = new FakeTransport(p);
                      return fake;
                    });
@@ -216,6 +218,23 @@ private slots:
     auto operationCount = operations.size();
     fake->inject({V2_RESULT, q.seq, result});
     QCOMPARE(operations.size(), operationCount);
+    // Unexpected disconnect must reconnect only this device, with a fresh session and no controls.
+    fake->stop();
+    QVERIFY(!c.observing());
+    QTRY_COMPARE_WITH_TIMEOUT(endpoints.size(), 2, 3000);
+    QCOMPARE(endpoints[0], endpoints[1]);
+    QCOMPARE(fake->sent.size(), 1);
+    put64(session, 20, 2);
+    fake->inject({V2_SESSION, 1, session});
+    put64(state, 0, 200);
+    fake->inject({V2_STATE, 2, state});
+    QVERIFY(c.fresh());
+    QVERIFY(c.onlineSeconds(1) >= 0);
+    QVERIFY(!c.observing());
+    QCOMPARE(fake->sent.size(), 3);
+    for (const auto &frame : fake->sent)
+      QVERIFY(quint8(frame.data[0]) == V2_HELLO || quint8(frame.data[0]) == V2_GET_STATE ||
+              quint8(frame.data[0]) == V2_GET_LEAVES);
     c.close();
     QVERIFY(!c.connected);
     QVERIFY(!c.observing());
