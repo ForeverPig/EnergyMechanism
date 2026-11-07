@@ -1,8 +1,10 @@
 param(
   [ValidateSet('Configure','Build','Test','Package')][string]$Action='Build',
-  [string]$QtRoot='', [string]$CMake='cmake', [string]$CrtRoot=$env:EM_CRT_ROOT
+  [string]$QtRoot='', [string]$CMake='cmake', [string]$CrtRoot=$env:EM_CRT_ROOT,
+  [ValidateSet('Release','RelWithDebInfo')][string]$Configuration='Release'
 )
 $ErrorActionPreference='Stop'
+if($Action -eq 'Package' -and $Configuration -ne 'Release'){throw 'Portable packages use Release; use Build/Test for RelWithDebInfo.'}
 $project=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $repo=[IO.Path]::GetFullPath((Join-Path $project '..\..'))
 $build=Join-Path $project 'build\windows'
@@ -16,12 +18,12 @@ $CMake=(Get-Command $CMake -ErrorAction Stop).Source
 & $CMake -S $project -B $build -G 'Visual Studio 17 2022' -A x64 "-DCMAKE_PREFIX_PATH=$QtRoot" -DBUILD_TESTING=ON
 if($LASTEXITCODE -ne 0){throw 'CMake configure failed'}
 if($Action -eq 'Configure'){return}
-& $CMake --build $build --config Release --parallel
+& $CMake --build $build --config $Configuration --parallel
 if($LASTEXITCODE -ne 0){throw 'Build failed'}
 $env:PATH="$QtRoot\bin;"+$env:PATH
 if($Action -in @('Test','Package')){
   $ctest=Join-Path (Split-Path $CMake) 'ctest.exe'
-  & $ctest --test-dir $build -C Release --output-on-failure
+  & $ctest --test-dir $build -C $Configuration --output-on-failure
   if($LASTEXITCODE -ne 0){throw 'Tests failed'}
 }
 if($Action -eq 'Package'){

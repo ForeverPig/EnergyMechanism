@@ -101,6 +101,7 @@ Window::Window(QWidget *parent) : QMainWindow(parent), model(this), scanner(this
     QPushButton:hover{background:#edf7f5;border-color:#69baa9;} QPushButton:pressed{background:#d5eee7;}
     QPushButton#primary{background:#0d9e89;color:white;border-color:#0d9e89;font-weight:600;}
     QPushButton#primary:hover{background:#0a8b78;} QPushButton:disabled{background:#f2f5f8;color:#9aa8b7;border-color:#e2e8ee;}
+    QPushButton#primary:disabled{background:#f2f5f8;color:#9aa8b7;border-color:#e2e8ee;}
     QComboBox,QSpinBox{background:#fff;border:1px solid #d6e0ea;border-radius:7px;padding:8px;min-height:20px;}
     QComboBox:disabled,QSpinBox:disabled{background:#f4f6f9;color:#9aa8b7;} QComboBox::drop-down{width:23px;border:0;}
     QTableWidget{background:white;alternate-background-color:#f7f9fc;border:0;selection-background-color:#dff2ed;selection-color:#204f47;}

@@ -1,1 +1,26 @@
-{"version":"0.2.0","configurations":[{"name":"Desktop · Windows","type":"cppvsdbg","request":"launch","program":"${workspaceFolder}/build/windows/Release/EnergyMechanismHost.exe","args":[],"cwd":"${workspaceFolder}","environment":[{"name":"PATH","value":"${workspaceFolder}/../../tmp/desktop-build/Qt/6.8.3/msvc2022_64/bin;${env:PATH}"}],"preLaunchTask":"Desktop: build"},{"name":"Desktop · Ubuntu","type":"cppdbg","request":"launch","program":"${workspaceFolder}/build/linux/EnergyMechanismHost","args":[],"cwd":"${workspaceFolder}","MIMode":"gdb","preLaunchTask":"Desktop: build"}]}
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Desktop · Windows",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/windows/RelWithDebInfo/EnergyMechanismHost.exe",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "environment": [{"name":"PATH","value":"${env:QT_ROOT}/bin;${workspaceFolder}/../../tmp/desktop-build/Qt/6.8.3/msvc2022_64/bin;${env:PATH}"}],
+      "preLaunchTask": "Desktop: debug build"
+    },
+    {
+      "name": "Desktop · Ubuntu",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/linux-debug/EnergyMechanismHost",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "environment": [{"name":"LD_LIBRARY_PATH","value":"${env:QT_ROOT}/lib:${env:LD_LIBRARY_PATH}"}],
+      "MIMode": "gdb",
+      "preLaunchTask": "Desktop: debug build"
+    }
+  ]
+}
