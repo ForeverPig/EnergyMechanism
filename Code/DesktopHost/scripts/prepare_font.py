@@ -16,6 +16,9 @@ license_file = root / 'resources/FONT-LICENSE.txt'
 if not license_file.exists():
     urllib.request.urlretrieve(base.replace('/Sans/', '/') + 'LICENSE', license_file)
 text = ''.join(chr(i) for i in range(32, 127)) + '—…°·秒环在线离线运行停止完成失败未知'
+for first in range(0xb0, 0xf8):
+    for second in range(0xa1, 0xff):
+        text += bytes((first, second)).decode('gb2312', errors='ignore')
 for path in (root / 'src').glob('*'):
     text += path.read_text(encoding='utf-8')
 options = subset.Options()

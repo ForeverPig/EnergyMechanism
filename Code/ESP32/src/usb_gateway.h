@@ -8,7 +8,8 @@
 #define USB_CLOSE 0x74u
 #define USB_SESSION_MS 3000u
 /* One USB business session, independent from the three BLE links. No allocations. */
-typedef struct {
+typedef struct
+{
   FrameParser parser;
   uint64_t nonce, retired[8];
   uint32_t last_rx;

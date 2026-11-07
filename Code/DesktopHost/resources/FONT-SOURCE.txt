@@ -1,4 +1,4 @@
 EnergyUI is a subset of Noto Sans CJK SC Regular 2.004, licensed under SIL OFL 1.1.
 https://raw.githubusercontent.com/notofonts/noto-cjk/Sans2.004/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf
 source_sha256=2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b
-subset_sha256=2d56e1bbfc07c853396d4d55e5ab2a9330efe11fc06c40f9d5ffd484360c0702
+subset_sha256=48dde183a1aec8a39ad6db7f59dadfe8dd92a9cc28fd33cbca2f1195761d9589

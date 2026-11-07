@@ -69,6 +69,7 @@ for elf in seen:
 (stage / 'AppRun').chmod(0o755)
 (stage / 'EnergyMechanismHost').chmod(0o755)
 subprocess.run([sys.executable, str(project / 'scripts/collect_licenses.py'), str(qt), str(stage / 'licenses')], check=True)
+shutil.copytree('/usr/share/common-licenses', stage / 'licenses/system/common-licenses', dirs_exist_ok=True)
 for elf in seen:
     if 'not found' in subprocess.check_output(['ldd', str(elf)], env=dict(os.environ, LD_LIBRARY_PATH=''), text=True):
         raise RuntimeError('Package is missing a dependency')

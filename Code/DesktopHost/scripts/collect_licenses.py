@@ -10,10 +10,10 @@ import urllib.request
 qt, output = map(Path, sys.argv[1:3])
 output.mkdir(parents=True, exist_ok=True)
 ids = {'LGPL-3.0-only', 'GPL-3.0-only'}
-for module in ('qtbase', 'qtconnectivity', 'qtserialport', 'qtwayland'):
+for module in ('qtbase', 'qtconnectivity', 'qtserialport', 'qtwayland', 'qtsvg'):
     source = qt / 'sbom' / f'{module}-6.8.3.spdx.json'
     if not source.exists():
-        if module != 'qtwayland':
+        if module not in ('qtwayland', 'qtsvg'):
             raise RuntimeError(f'Missing vendor license metadata: {source}')
         continue
     shutil.copy2(source, output / source.name)
@@ -36,7 +36,7 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
     'Qt 6.8.3 is dynamically linked under LGPL v3. You may replace the Qt shared libraries with compatible builds.\n'
     'Application build instructions and sources: https://github.com/ForeverPig/EnergyMechanism\n'
     'Qt corresponding source: https://download.qt.io/archive/qt/6.8/6.8.3/submodules/\n'
-    'Modules: qtbase, qtconnectivity, qtserialport; Linux also qtwayland. Qt is unmodified.\n'
+    'Modules: qtbase, qtconnectivity, qtserialport; Linux also qtwayland and qtsvg. Qt sources are unmodified; binary search paths are adjusted during packaging.\n'
     'Vendor SPDX files contain component copyright and license attribution, including components not used by this application.\n'
     'Windows package also contains Microsoft Visual C++ runtime redistributable DLLs, copyright Microsoft Corporation.\n'
     'Font license/source are in resources/FONT-LICENSE.txt and FONT-SOURCE.txt.\n', encoding='utf-8')
