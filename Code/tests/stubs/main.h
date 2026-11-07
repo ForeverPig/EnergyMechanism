@@ -56,4 +56,5 @@ void HAL_GPIO_WritePin(GPIO_TypeDef *, uint16_t, GPIO_PinState);
 GPIO_PinState HAL_GPIO_ReadPin(GPIO_TypeDef *, uint16_t);
 void HAL_Delay(uint32_t);
 uint32_t HAL_GetTick(void);
+#include "fdcan_stub.h"
 #endif

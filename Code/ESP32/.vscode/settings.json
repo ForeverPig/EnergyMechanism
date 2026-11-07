@@ -1,0 +1,7 @@
+{
+  "cmake.configureOnOpen": false,
+  "idf.flashType": "UART",
+  "idf.enableCCache": false,
+  "idf.buildPath": "build",
+  "idf.customExtraVars": {"IDF_TARGET":"esp32c3","PYTHONUTF8":"1","PYTHONIOENCODING":"utf-8"}
+}

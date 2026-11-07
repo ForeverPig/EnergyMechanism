@@ -5,6 +5,7 @@ New-Item -ItemType Directory -Force -Path $out | Out-Null
 Push-Location -LiteralPath $codeRoot
 try {
   $cases=@(
+    @{Name='can_bus';Args=@('-Itests/stubs','-ICommon/Inc','Common/Src/can_bus.c','Common/Src/debug_protocol.c','tests/test_can_bus.c')},
     @{Name='protocol';Args=@('-ICommon/Inc','Common/Src/debug_protocol.c','tests/test_protocol.c')},
     @{Name='hit_detector';Args=@('-IFan Blade/App/Inc','Fan Blade/App/Src/hit_detector.c','tests/test_hit_detector.c')},
     @{Name='sampler';Args=@('-Itests/stubs','-IFan Blade/App/Inc','Fan Blade/App/Src/pressure_sampler.c','tests/test_sampler.c')},

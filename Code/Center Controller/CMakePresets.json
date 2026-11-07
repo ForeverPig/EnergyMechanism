@@ -21,6 +21,14 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "CanSelfTest",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CENTER_CAN_SELFTEST": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -31,6 +39,10 @@
     {
       "name": "Release",
       "configurePreset": "Release"
+    },
+    {
+      "name": "CanSelfTest",
+      "configurePreset": "CanSelfTest"
     }
   ]
 }

@@ -1,0 +1,10 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {"label":"ESP32: Check ESP-IDF environment","type":"process","command":"powershell.exe","args":["-NoProfile","-ExecutionPolicy","Bypass","-File","${workspaceFolder}/../tools/esp32.ps1","-Action","Setup"],"problemMatcher":[]},
+    {"label":"ESP32: Build","type":"process","command":"powershell.exe","args":["-NoProfile","-ExecutionPolicy","Bypass","-File","${workspaceFolder}/../tools/esp32.ps1","-Action","Build"],"group":{"kind":"build","isDefault":true},"problemMatcher":["$gcc"]},
+    {"label":"ESP32: FLASH via USB","type":"process","command":"powershell.exe","args":["-NoProfile","-ExecutionPolicy","Bypass","-File","${workspaceFolder}/../tools/esp32.ps1","-Action","Flash","-Port","${input:espPort}"],"problemMatcher":[]},
+    {"label":"ESP32: UART hardware test","type":"process","command":"powershell.exe","args":["-NoProfile","-ExecutionPolicy","Bypass","-File","${workspaceFolder}/../tools/esp32.ps1","-Action","Test","-Port","${input:espPort}"],"problemMatcher":[]}
+  ],
+  "inputs":[{"id":"espPort","type":"promptString","description":"ESP32 native USB COM port"}]
+}

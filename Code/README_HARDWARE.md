@@ -1,6 +1,6 @@
 # 能量机关基础硬件调试工程
 
-本期实现两块STM32的基础调试固件。**电机只读反馈，不发送驱动指令；没有烧录或实板验证。** ESP32固件、蓝牙桥接、Windows正式界面、微信小程序与大小符训练状态机不属于本次代码。
+本期实现两块STM32的基础调试固件及ESP32串口测试程序。**电机只读反馈，不发送驱动指令。** 2026-11-07完成中心板五路CAN实测（本地资料：`../outputs/中心控制板_CAN实测_20261107.md`），随后换回常规中心固件并完成ESP32 UART实测（本地资料：`../outputs/ESP32与STM32_UART实测_20261107.md`）。叶片与其余功能尚未实板验收。蓝牙桥接、Windows正式界面、微信小程序与大小符训练状态机尚未实现。
 
 ## 工程与入口
 
@@ -11,6 +11,7 @@
 | `Common/` | 两工程共享的串口帧协议、FDCAN收发、压力快照编解码 |
 | `tools/firmware.ps1` | 明确分开的Configure、Build、Flash入口 |
 | `tools/debug_monitor.py` | Windows串口命令行观察/校准工具，不带正式界面，不自动导出CSV |
+| `tools/center_can_selftest.py` | 通过ST-Link执行中心板独立CAN互测；需显式`--flash`才写入测试固件 |
 | `tests/` | 主机回归及ADC/MCP2515模拟HAL测试 |
 | `PROTOCOL_DEBUG_V1.md` | 本期可修改的调试协议 |
 
@@ -59,7 +60,7 @@ $env:CUBE_BUNDLE_PATH='C:\Users\shuto\AppData\Local\stm32cube\bundles'
 
 两工程栈预留从1 KiB增加为4 KiB，IOC与链接脚本同步；Flash布局仍完整128 KiB，没有划参数区。应用与共享代码开启`-Wall -Wextra -Wpedantic -Werror`。
 
-### 烧录入口（本次未执行）
+### 烧录入口
 
 VS Code的`Flash Leaf/Center`任务会要求ST-LINK序列号，避免在多个探针存在时默认选择第一块板。调试启动配置名称明确含`FLASH + debug`，F5同样会写入固件。**普通Build任务不会运行烧录器或访问探针。**
 
@@ -81,8 +82,8 @@ python -m pip install -r '.\Code\tools\requirements.txt'
 ```
 
 - 叶片：3.3V USB-TTL接USART2，PB3是STM32 TX、PA15是STM32 RX，共地，115200/8N1。新板没有测试工程的USB CDC。
-- 中心：USART1，PA9为STM32 TX、PA10为STM32 RX，1000000/8N1。Type-C数据接ESP32，本次没有ESP32桥接固件，因此**不能把中心Type-C直接当作STM32调试串口**。使用USB-TTL时需避免它与ESP32的TX同时驱动PA10；可待后续ESP32桥接固件完成后从桥接入口观察。
-- 工具只在显式指定`--port`后打开串口；本次未运行任何连接真实COM口的命令。
+- 中心：USART1，PA9为STM32 TX、PA10为STM32 RX，1000000/8N1。Type-C数据接ESP32，当前[ESP32程序](ESP32/README.md)提供独立UART测试控制台，尚不是通用二进制透传桥；原`debug_monitor.py`不能直接连接该控制台。使用USB-TTL时需避免它与ESP32的TX同时驱动PA10。
+- 工具只在显式指定`--port`后打开串口；`debug_monitor.py`尚未用于本板实测，ESP32 UART验收使用独立的`esp32_uart_test.py`。
 
 ```powershell
 # 单叶片：观察十路数据和击打，0表示直接连接的本片
@@ -117,4 +118,4 @@ MCP2515初始化失败或SPI故障会将该端口标为未就绪；本期没有�
 
 覆盖检测判据及新映射、ADC3实际采样模块的两路DMA步长、不同ADC回调到达次序、丢回调/队列溢出/部分启动失败、串口CRC与分包恢复、快照分片缺失/跨帧混合、全部2048个标准CAN ID的中心发送白名单、C620有符号解析、实际MCP驱动在模拟寄存器上的收发与故障路径，以及Python工具解码。
 
-这些是主机模拟和目标交叉编译证据，不代表实板通过。
+上述回归是主机模拟和目标交叉编译证据；五路CAN的独立实测证据与边界见前述实测记录。共享FDCAN驱动已新增Queue/FIFO发送可用性回归，修复Queue模式下TFFL为0导致发送被误拦截的问题。

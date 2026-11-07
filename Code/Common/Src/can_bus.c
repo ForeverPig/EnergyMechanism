@@ -88,8 +88,9 @@ bool CanBus_Receive(CanBus *b, CanFrame *f)
 bool CanBus_Send(CanBus *b, const CanFrame *f)
 {
   if (!b->ready || b->bus_off || f->len > 8 || !CanIdAllowed(b->center != 0, f->id) ||
-      !HAL_FDCAN_GetTxFifoFreeLevel(b->can))
+      (b->can->Instance->TXFQS & FDCAN_TXFQS_TFQF))
     return false;
+  /* RM0440: TFFL reads zero in Tx Queue mode. TFQF is valid in both modes. */
   FDCAN_TxHeaderTypeDef h = {0};
   h.Identifier = f->id;
   h.IdType = FDCAN_STANDARD_ID;
