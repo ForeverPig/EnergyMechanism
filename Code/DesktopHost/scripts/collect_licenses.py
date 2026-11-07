@@ -5,7 +5,9 @@ from pathlib import Path
 import re
 import shutil
 import sys
+import time
 import urllib.request
+import urllib.error
 
 qt, output = map(Path, sys.argv[1:3])
 output.mkdir(parents=True, exist_ok=True)
@@ -24,13 +26,26 @@ for module in ('qtbase', 'qtconnectivity', 'qtserialport', 'qtwayland', 'qtsvg')
         for key in ('licenseDeclared', 'licenseConcluded'):
             ids.update(re.findall(r'[A-Za-z0-9][A-Za-z0-9.+-]*', entry.get(key, '')))
 ids = {x for x in ids if x not in {'AND', 'OR', 'WITH', 'NOASSERTION', 'NONE'} and not x.startswith('LicenseRef-')}
+cache = Path(__file__).resolve().parents[1] / 'build/license-cache/spdx-v3.26.0'
+cache.mkdir(parents=True, exist_ok=True)
 def fetch(identifier):
     target = output / f'{identifier}.txt'
     if not target.exists():
-        url = f'https://raw.githubusercontent.com/spdx/license-list-data/v3.26.0/text/{identifier}.txt'
-        with urllib.request.urlopen(url, timeout=45) as response:
-            target.write_bytes(response.read())
-with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+        saved = cache / target.name
+        if not saved.exists():
+            url = f'https://raw.githubusercontent.com/spdx/license-list-data/v3.26.0/text/{identifier}.txt'
+            for attempt in range(3):
+                try:
+                    with urllib.request.urlopen(url, timeout=25) as response:
+                        data = response.read()
+                    saved.write_bytes(data)
+                    break
+                except (OSError, urllib.error.URLError):
+                    if attempt == 2:
+                        raise
+                    time.sleep(attempt + 1)
+        shutil.copy2(saved, target)
+with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
     list(pool.map(fetch, sorted(ids)))
 (output / 'README.txt').write_text(
     'Qt 6.8.3 is dynamically linked under LGPL v3. You may replace the Qt shared libraries with compatible builds.\n'
